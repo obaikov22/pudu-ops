@@ -1,0 +1,11 @@
+{
+  "permissions": {
+    "allow": [
+      "Bash(flutter pub get)",
+      "Bash(flutter analyze)",
+      "Bash(flutter analyze lib/services/backup_service.dart lib/models/robot.dart lib/models/template.dart lib/features/robots/robots_screen.dart)",
+      "Bash(dart run flutter_launcher_icons)",
+      "Bash(flutter analyze lib/features/robots/robots_screen.dart lib/providers/robots_providers.dart lib/services/robots_repository.dart)"
+    ]
+  }
+}
