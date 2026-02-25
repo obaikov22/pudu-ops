@@ -9,6 +9,7 @@ import 'features/history/history_screen.dart';
 import 'services/storage_service.dart';
 import 'core/shift_reset_service.dart';
 import 'services/notification_service.dart';
+import 'services/update_service.dart';
 
 Future<void> main() async {
   WidgetsFlutterBinding.ensureInitialized();
@@ -322,7 +323,7 @@ class _RootScaffoldState extends ConsumerState<RootScaffold> {
                               ),
                             ),
                             child: Text(
-                              'v2.0.0 Beta',
+                              'v2.1.2 Beta',
                               style: theme.textTheme.labelSmall?.copyWith(
                                 color: _primary,
                                 fontWeight: FontWeight.w600,
@@ -403,7 +404,7 @@ class _RootScaffoldState extends ConsumerState<RootScaffold> {
                       crossAxisAlignment: CrossAxisAlignment.start,
                       children: [
                         Text(
-                          'PUDU-OPS 2.0',
+                          'PUDU-OPS 2.1.2',
                           style: theme.textTheme.titleLarge?.copyWith(
                             fontWeight: FontWeight.w800,
                             letterSpacing: 0.6,
@@ -458,6 +459,225 @@ class _RootScaffoldState extends ConsumerState<RootScaffold> {
             label: 'History',
           ),
         ],
+      ),
+    );
+  }
+
+  @override
+  void initState() {
+    super.initState();
+    _checkForUpdate();
+  }
+
+  Future<void> _checkForUpdate() async {
+    final update = await UpdateService.checkForUpdate();
+    if (update == null) return;
+    if (!mounted) return;
+    _showUpdateDialog(update);
+  }
+
+  void _showUpdateDialog(UpdateInfo update) {
+    double progress = 0;
+    bool downloading = false;
+
+    showDialog(
+      context: context,
+      barrierDismissible: !downloading,
+      builder: (ctx) => StatefulBuilder(
+        builder: (ctx, setDialogState) => Dialog(
+          backgroundColor: Colors.transparent,
+          child: Container(
+            decoration: BoxDecoration(
+              color: const Color(0xFF13151C),
+              borderRadius: BorderRadius.circular(24),
+              border: Border.all(
+                color: const Color(0xFF7C6AF7).withOpacity(0.2),
+              ),
+            ),
+            child: Column(
+              mainAxisSize: MainAxisSize.min,
+              children: [
+                // Шапка
+                Container(
+                  width: double.infinity,
+                  padding: const EdgeInsets.fromLTRB(24, 24, 24, 20),
+                  decoration: BoxDecoration(
+                    borderRadius: const BorderRadius.vertical(
+                      top: Radius.circular(24),
+                    ),
+                    gradient: LinearGradient(
+                      colors: [
+                        const Color(0xFF7C6AF7).withOpacity(0.15),
+                        const Color(0xFF7C6AF7).withOpacity(0.03),
+                      ],
+                      begin: Alignment.topLeft,
+                      end: Alignment.bottomRight,
+                    ),
+                  ),
+                  child: Row(
+                    children: [
+                      Container(
+                        padding: const EdgeInsets.all(10),
+                        decoration: BoxDecoration(
+                          color: const Color(0xFF7C6AF7).withOpacity(0.15),
+                          borderRadius: BorderRadius.circular(12),
+                          border: Border.all(
+                            color: const Color(0xFF7C6AF7).withOpacity(0.3),
+                          ),
+                        ),
+                        child: const Icon(
+                          Icons.system_update_outlined,
+                          color: Color(0xFF7C6AF7),
+                          size: 22,
+                        ),
+                      ),
+                      const SizedBox(width: 14),
+                      Column(
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        children: [
+                          Text(
+                            'Update available',
+                            style: Theme.of(context)
+                                .textTheme
+                                .titleMedium
+                                ?.copyWith(fontWeight: FontWeight.w800),
+                          ),
+                          Text(
+                            'v${update.version}',
+                            style: Theme.of(context)
+                                .textTheme
+                                .bodySmall
+                                ?.copyWith(
+                                  color: const Color(0xFF7C6AF7),
+                                ),
+                          ),
+                        ],
+                      ),
+                    ],
+                  ),
+                ),
+
+                if (update.changelog.isNotEmpty) ...[
+                  Padding(
+                    padding: const EdgeInsets.fromLTRB(24, 16, 24, 4),
+                    child: Text(
+                      "What's new:",
+                      style: Theme.of(context)
+                          .textTheme
+                          .bodySmall
+                          ?.copyWith(color: const Color(0xFF8B92A5)),
+                    ),
+                  ),
+                  ConstrainedBox(
+                    constraints: const BoxConstraints(maxHeight: 200),
+                    child: SingleChildScrollView(
+                      padding: const EdgeInsets.fromLTRB(24, 6, 24, 16),
+                      child: Text(
+                        update.changelog,
+                        style: Theme.of(context)
+                            .textTheme
+                            .bodyMedium
+                            ?.copyWith(color: Colors.white70),
+                      ),
+                    ),
+                  ),
+                ],
+
+                Padding(
+                  padding: const EdgeInsets.fromLTRB(24, 8, 24, 8),
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      // Прогресс-бар
+                      if (downloading) ...[
+                        ClipRRect(
+                          borderRadius: BorderRadius.circular(4),
+                          child: LinearProgressIndicator(
+                            value: progress,
+                            backgroundColor:
+                                const Color(0xFF7C6AF7).withOpacity(0.15),
+                            valueColor: const AlwaysStoppedAnimation(
+                                Color(0xFF7C6AF7)),
+                            minHeight: 6,
+                          ),
+                        ),
+                        const SizedBox(height: 8),
+                        Text(
+                          '${(progress * 100).toInt()}%',
+                          style: Theme.of(context)
+                              .textTheme
+                              .bodySmall
+                              ?.copyWith(color: const Color(0xFF8B92A5)),
+                        ),
+                        const SizedBox(height: 8),
+                      ],
+                    ],
+                  ),
+                ),
+
+                Divider(height: 1, color: Colors.white.withOpacity(0.07)),
+
+                // Кнопки
+                if (!downloading)
+                  Row(
+                    children: [
+                      Expanded(
+                        child: TextButton(
+                          onPressed: () => Navigator.pop(ctx),
+                          style: TextButton.styleFrom(
+                            padding: const EdgeInsets.symmetric(vertical: 16),
+                            shape: const RoundedRectangleBorder(
+                              borderRadius: BorderRadius.only(
+                                bottomLeft: Radius.circular(24),
+                              ),
+                            ),
+                          ),
+                          child: Text(
+                            'Later',
+                            style: TextStyle(color: const Color(0xFF8B92A5)),
+                          ),
+                        ),
+                      ),
+                      Container(
+                          width: 1,
+                          height: 48,
+                          color: Colors.white.withOpacity(0.07)),
+                      Expanded(
+                        child: TextButton(
+                          onPressed: () async {
+                            setDialogState(() => downloading = true);
+                            await UpdateService.downloadAndInstall(
+                              context,
+                              update,
+                              onProgress: (p) =>
+                                  setDialogState(() => progress = p),
+                            );
+                          },
+                          style: TextButton.styleFrom(
+                            padding: const EdgeInsets.symmetric(vertical: 16),
+                            shape: const RoundedRectangleBorder(
+                              borderRadius: BorderRadius.only(
+                                bottomRight: Radius.circular(24),
+                              ),
+                            ),
+                          ),
+                          child: const Text(
+                            'Update',
+                            style: TextStyle(
+                              color: Color(0xFF7C6AF7),
+                              fontWeight: FontWeight.w700,
+                            ),
+                          ),
+                        ),
+                      ),
+                    ],
+                  )
+                else
+                  const SizedBox(height: 16),
+              ],
+            ),
+          ),
+        ),
       ),
     );
   }
