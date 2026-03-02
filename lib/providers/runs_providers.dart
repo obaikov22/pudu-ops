@@ -22,9 +22,17 @@ class RunsController extends Notifier<List<RunRecord>> {
     final runs = _load();
 
     // Sync foreground service state on startup (fire-and-forget)
-    final activeCount = runs.where((r) => r.status == RunStatus.active).length;
-    if (activeCount > 0) {
-      unawaited(ForegroundService.start(activeCount));
+    final activeRuns =
+        runs.where((r) => r.status == RunStatus.active).toList();
+    if (activeRuns.isNotEmpty) {
+      final storage = ref.read(storageServiceProvider);
+      final now = DateTime.now();
+      final summaries = activeRuns.map((run) {
+        final robotName = storage.robotsBox.get(run.robotId)?.name ?? 'Robot';
+        final mins = run.remainingAt(now).inMinutes;
+        return RunSummary(robotName: robotName, remainingMinutes: mins);
+      }).toList();
+      unawaited(ForegroundService.start(summaries));
     } else {
       unawaited(ForegroundService.stop());
     }
@@ -75,13 +83,24 @@ class RunsController extends Notifier<List<RunRecord>> {
   }
 
   Future<void> _syncForegroundService() async {
-    final activeCount =
-        state.where((r) => r.status == RunStatus.active).length;
-    if (activeCount > 0) {
-      await ForegroundService.start(activeCount);
-    } else {
+    final activeRuns =
+        state.where((r) => r.status == RunStatus.active).toList();
+
+    if (activeRuns.isEmpty) {
       await ForegroundService.stop();
+      return;
     }
+
+    final storage = ref.read(storageServiceProvider);
+    final now = DateTime.now();
+
+    final summaries = activeRuns.map((run) {
+      final robotName = storage.robotsBox.get(run.robotId)?.name ?? 'Robot';
+      final mins = run.remainingAt(now).inMinutes;
+      return RunSummary(robotName: robotName, remainingMinutes: mins);
+    }).toList();
+
+    await ForegroundService.start(summaries);
   }
 
   /// Ручной старт без шаблона (если когда-нибудь понадобится)

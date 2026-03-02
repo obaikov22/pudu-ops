@@ -11,6 +11,25 @@ import '../models/run_status.dart';
 import 'storage_service.dart';
 
 // ─────────────────────────────────────────────────────────────────────────────
+// Per-run data passed from RunsController to ForegroundService.start().
+// ─────────────────────────────────────────────────────────────────────────────
+
+class RunSummary {
+  const RunSummary({required this.robotName, required this.remainingMinutes});
+
+  final String robotName;
+  final int remainingMinutes;
+
+  String get timeLabel {
+    if (remainingMinutes <= 0) return 'finishing...';
+    final h = remainingMinutes ~/ 60;
+    final m = remainingMinutes % 60;
+    if (h > 0) return '${h}h ${m}m';
+    return '${m}m';
+  }
+}
+
+// ─────────────────────────────────────────────────────────────────────────────
 // Entry-point for the background isolate.
 // Must be a top-level function annotated with @pragma('vm:entry-point').
 // ─────────────────────────────────────────────────────────────────────────────
@@ -94,11 +113,21 @@ class RunTimerTaskHandler extends TaskHandler {
     final activeRuns =
         runsBox.values.where((r) => r.status == RunStatus.active).toList();
 
-    // Refresh the ongoing notification count
-    final count = activeRuns.length;
-    await FlutterForegroundTask.updateService(
-      notificationText: count == 1 ? '1 active run' : '$count active runs',
-    );
+    // Refresh notification with robot names and remaining times
+    if (activeRuns.isNotEmpty) {
+      final count = activeRuns.length;
+      final notifTitle = count == 1 ? '1 active run' : '$count active runs';
+      final notifText = activeRuns.map((run) {
+        final robotName = robotsBox.get(run.robotId)?.name ?? 'Robot';
+        final mins = run.remainingAt(now).inMinutes;
+        final s = RunSummary(robotName: robotName, remainingMinutes: mins);
+        return '${s.robotName} · ${s.timeLabel}';
+      }).join('\n');
+      await FlutterForegroundTask.updateService(
+        notificationTitle: notifTitle,
+        notificationText: notifText,
+      );
+    }
 
     // Transition any runs whose timer has expired
     for (final run in activeRuns) {
@@ -112,13 +141,9 @@ class RunTimerTaskHandler extends TaskHandler {
         await _showPickupNotification(robotName);
       }
     }
-
-    // Auto-stop when no active runs remain
-    final remaining =
-        runsBox.values.where((r) => r.status == RunStatus.active).length;
-    if (remaining == 0) {
-      await FlutterForegroundTask.stopService();
-    }
+    // Service lifecycle is managed exclusively by the main isolate via
+    // RunsController._syncForegroundService(). The background isolate never
+    // calls stopService() so it cannot race with new runs being started.
   }
 
   Future<void> _showPickupNotification(String robotName) async {
@@ -168,16 +193,19 @@ class ForegroundService {
     );
   }
 
-  /// Start (or update) the foreground service showing [activeCount] active runs.
-  static Future<void> start(int activeCount) async {
+  /// Start (or update) the foreground service with per-run details.
+  static Future<void> start(List<RunSummary> runs) async {
     if (!Platform.isAndroid) return;
-    final text = activeCount == 1 ? '1 active run' : '$activeCount active runs';
+
+    final count = runs.length;
+    final title = count == 1 ? '1 active run' : '$count active runs';
+    final text = runs.map((r) => '${r.robotName} · ${r.timeLabel}').join('\n');
 
     final isRunning = await FlutterForegroundTask.isRunningService;
 
     if (isRunning) {
       await FlutterForegroundTask.updateService(
-        notificationTitle: 'PUDU-OPS',
+        notificationTitle: title,
         notificationText: text,
       );
       return;
@@ -187,7 +215,7 @@ class ForegroundService {
 
     try {
       await FlutterForegroundTask.startService(
-        notificationTitle: 'PUDU-OPS',
+        notificationTitle: title,
         notificationText: text,
         callback: startCallback,
       );
