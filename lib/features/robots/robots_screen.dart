@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:flutter/services.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 import '../../models/robot.dart';
@@ -84,6 +85,7 @@ class _RobotsScreenState extends ConsumerState<RobotsScreen> {
                     final name = _nameController.text.trim();
                     final noteText = _noteController.text.trim();
                     if (name.isEmpty) return;
+                    HapticFeedback.lightImpact();
 
                     await ref
                         .read(robotsControllerProvider.notifier)
@@ -279,7 +281,10 @@ class _RobotTile extends ConsumerWidget {
                                 child: const Text('Cancel'),
                               ),
                               TextButton(
-                                onPressed: () => Navigator.pop(ctx, true),
+                                onPressed: () {
+                                  HapticFeedback.heavyImpact();
+                                  Navigator.pop(ctx, true);
+                                },
                                 child: const Text(
                                   'Delete',
                                   style: TextStyle(color: Colors.redAccent),
@@ -656,7 +661,10 @@ class _ToggleColumn extends StatelessWidget {
           scale: 0.85,
           child: Switch(
             value: value,
-            onChanged: onChanged,
+            onChanged: (v) {
+              HapticFeedback.lightImpact();
+              onChanged(v);
+            },
             activeThumbColor: Colors.white,
             activeTrackColor: color,
           ),

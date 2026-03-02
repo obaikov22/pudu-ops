@@ -2,6 +2,7 @@
 import 'dart:async';
 
 import 'package:flutter/material.dart';
+import 'package:flutter/services.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 import '../../models/run_record.dart';
@@ -637,7 +638,12 @@ class _GlowButton extends StatelessWidget {
     final effectiveColor = isDisabled ? _textSecondary : color;
 
     return GestureDetector(
-      onTap: onPressed,
+      onTap: onPressed == null
+          ? null
+          : () {
+              HapticFeedback.mediumImpact();
+              onPressed!();
+            },
       child: Container(
         padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 9),
         decoration: BoxDecoration(

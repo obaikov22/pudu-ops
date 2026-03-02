@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:flutter/services.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:hive_flutter/hive_flutter.dart';
 
@@ -168,6 +169,7 @@ class _RootScaffoldState extends ConsumerState<RootScaffold> {
   static const _primary = Color(0xFF7C6AF7);
 
   void _onTabSelected(int index) {
+    HapticFeedback.selectionClick();
     setState(() {
       _currentIndex = index;
     });
@@ -330,7 +332,7 @@ class _RootScaffoldState extends ConsumerState<RootScaffold> {
                               ),
                             ),
                             child: Text(
-                              'v2.1.2 Beta',
+                              'v2.2.2 Beta',
                               style: theme.textTheme.labelSmall?.copyWith(
                                 color: _primary,
                                 fontWeight: FontWeight.w600,
@@ -411,7 +413,7 @@ class _RootScaffoldState extends ConsumerState<RootScaffold> {
                       crossAxisAlignment: CrossAxisAlignment.start,
                       children: [
                         Text(
-                          'PUDU-OPS 2.2.1',
+                          'PUDU-OPS 2.2.2',
                           style: theme.textTheme.titleLarge?.copyWith(
                             fontWeight: FontWeight.w800,
                             letterSpacing: 0.6,

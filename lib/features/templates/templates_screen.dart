@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:flutter/services.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 import '../../models/robot.dart';
@@ -338,7 +339,10 @@ class _TemplateExpandableCard extends StatelessWidget {
                           child: const Text('Cancel'),
                         ),
                         TextButton(
-                          onPressed: () => Navigator.pop(ctx, true),
+                          onPressed: () {
+                            HapticFeedback.heavyImpact();
+                            Navigator.pop(ctx, true);
+                          },
                           child: const Text(
                             'Delete',
                             style: TextStyle(color: Colors.redAccent),
@@ -409,7 +413,10 @@ class _ActionButton extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return GestureDetector(
-      onTap: onPressed,
+      onTap: () {
+        HapticFeedback.lightImpact();
+        onPressed();
+      },
       child: Container(
         padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 8),
         decoration: BoxDecoration(
@@ -708,6 +715,7 @@ class _TemplateEditorSheetState extends ConsumerState<_TemplateEditorSheet> {
                       final selected = data.cores.contains(core);
                       return GestureDetector(
                         onTap: () {
+                          HapticFeedback.selectionClick();
                           setState(() {
                             if (selected) {
                               data.cores.remove(core);
@@ -893,6 +901,7 @@ class _TemplateEditorSheetState extends ConsumerState<_TemplateEditorSheet> {
                       }
                     }
 
+                    HapticFeedback.lightImpact();
                     final name = _nameController.text.trim();
                     final startMinutes = _timeOfDayToMinutes(_startTime);
                     final taskModels = _tasks.map((t) {

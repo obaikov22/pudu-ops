@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:flutter/services.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 import '../../models/run_record.dart';
@@ -371,7 +372,12 @@ class _NavArrow extends StatelessWidget {
   Widget build(BuildContext context) {
     final isDisabled = onPressed == null;
     return GestureDetector(
-      onTap: onPressed,
+      onTap: onPressed == null
+          ? null
+          : () {
+              HapticFeedback.selectionClick();
+              onPressed!();
+            },
       child: Container(
         width: 40,
         height: 40,
