@@ -1,31 +1,43 @@
-import 'dart:async';
+import 'dart:async' show Timer, unawaited;
+
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:uuid/uuid.dart';
 
 import '../models/run_record.dart';
 import '../models/run_status.dart';
 import '../models/template.dart';
-import '../services/storage_service.dart';
-import 'storage_providers.dart';
+import '../services/foreground_service.dart';
 import '../services/notification_service.dart';
+import 'storage_providers.dart';
 
 final _uuid = const Uuid();
 
 class RunsController extends Notifier<List<RunRecord>> {
   @override
   List<RunRecord> build() {
-    // Отменяем таймер когда провайдер уничтожается
     ref.onDispose(() {
       _autoFinishTimer?.cancel();
     });
     _startAutoFinishTimer();
-    return _load();
+    final runs = _load();
+
+    // Sync foreground service state on startup (fire-and-forget)
+    final activeCount = runs.where((r) => r.status == RunStatus.active).length;
+    if (activeCount > 0) {
+      unawaited(ForegroundService.start(activeCount));
+    } else {
+      unawaited(ForegroundService.stop());
+    }
+
+    return runs;
   }
 
   Timer? _autoFinishTimer;
 
   void _startAutoFinishTimer() {
     _autoFinishTimer?.cancel();
+    // In-app 5 s timer handles UI updates while the app is in the foreground.
+    // The foreground service handles the same transitions when backgrounded.
     _autoFinishTimer = Timer.periodic(const Duration(seconds: 5), (_) async {
       final now = DateTime.now();
       final storage = ref.read(storageServiceProvider);
@@ -33,7 +45,6 @@ class RunsController extends Notifier<List<RunRecord>> {
 
       for (final run in activeRuns) {
         if (run.remainingAt(now) <= Duration.zero) {
-          // Получаем имя робота для уведомления
           final robot = storage.robotsBox.get(run.robotId);
           final robotName = robot?.name ?? 'Robot';
 
@@ -48,7 +59,6 @@ class RunsController extends Notifier<List<RunRecord>> {
     final storage = ref.read(storageServiceProvider);
     final runs = storage.runsBox.values.toList();
 
-    // немного сортировки: активные выше, потом awaiting, потом completed
     runs.sort((a, b) {
       if (a.status != b.status) {
         return a.status.index.compareTo(b.status.index);
@@ -61,6 +71,17 @@ class RunsController extends Notifier<List<RunRecord>> {
 
   void refresh() {
     state = _load();
+    unawaited(_syncForegroundService());
+  }
+
+  Future<void> _syncForegroundService() async {
+    final activeCount =
+        state.where((r) => r.status == RunStatus.active).length;
+    if (activeCount > 0) {
+      await ForegroundService.start(activeCount);
+    } else {
+      await ForegroundService.stop();
+    }
   }
 
   /// Ручной старт без шаблона (если когда-нибудь понадобится)

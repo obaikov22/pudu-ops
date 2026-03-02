@@ -8,7 +8,10 @@ import 'features/templates/templates_screen.dart';
 import 'features/history/history_screen.dart';
 import 'services/storage_service.dart';
 import 'core/shift_reset_service.dart';
+import 'package:flutter_foreground_task/flutter_foreground_task.dart';
+
 import 'services/notification_service.dart';
+import 'services/foreground_service.dart';
 import 'services/update_service.dart';
 
 Future<void> main() async {
@@ -23,6 +26,10 @@ Future<void> main() async {
   await shiftResetService.resetIfNewShift();
 
   await NotificationService.init();
+
+  // Configure the foreground service notification channel and task options.
+  // The service itself is started/stopped by RunsController when runs change.
+  ForegroundService.init();
 
   runApp(
     const ProviderScope(
@@ -143,7 +150,7 @@ class MyApp extends StatelessWidget {
       title: 'PUDU-OPS 2.0',
       debugShowCheckedModeBanner: false,
       theme: theme,
-      home: const RootScaffold(),
+      home: const WithForegroundTask(child: RootScaffold()),
     );
   }
 }
@@ -404,7 +411,7 @@ class _RootScaffoldState extends ConsumerState<RootScaffold> {
                       crossAxisAlignment: CrossAxisAlignment.start,
                       children: [
                         Text(
-                          'PUDU-OPS 2.1.2',
+                          'PUDU-OPS 2.2.0',
                           style: theme.textTheme.titleLarge?.copyWith(
                             fontWeight: FontWeight.w800,
                             letterSpacing: 0.6,
@@ -467,6 +474,12 @@ class _RootScaffoldState extends ConsumerState<RootScaffold> {
   void initState() {
     super.initState();
     _checkForUpdate();
+    _requestPermissions();
+  }
+
+  Future<void> _requestPermissions() async {
+    await FlutterForegroundTask.requestNotificationPermission();
+    await FlutterForegroundTask.requestIgnoreBatteryOptimization();
   }
 
   Future<void> _checkForUpdate() async {
