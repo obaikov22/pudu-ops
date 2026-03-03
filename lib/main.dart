@@ -332,7 +332,7 @@ class _RootScaffoldState extends ConsumerState<RootScaffold> {
                               ),
                             ),
                             child: Text(
-                              'v2.2.2 Beta',
+                              'v2.2.3 Beta',
                               style: theme.textTheme.labelSmall?.copyWith(
                                 color: _primary,
                                 fontWeight: FontWeight.w600,
@@ -413,7 +413,7 @@ class _RootScaffoldState extends ConsumerState<RootScaffold> {
                       crossAxisAlignment: CrossAxisAlignment.start,
                       children: [
                         Text(
-                          'PUDU-OPS 2.2.2',
+                          'PUDU-OPS 2.2.3',
                           style: theme.textTheme.titleLarge?.copyWith(
                             fontWeight: FontWeight.w800,
                             letterSpacing: 0.6,
