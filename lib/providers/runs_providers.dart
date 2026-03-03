@@ -83,21 +83,25 @@ class RunsController extends Notifier<List<RunRecord>> {
   }
 
   Future<void> _syncForegroundService() async {
-    final activeRuns =
-        state.where((r) => r.status == RunStatus.active).toList();
+    // Read directly from storage to avoid stale Riverpod state — multiple
+    // unawaited calls can race, so pulling from Hive guarantees we always see
+    // the latest persisted runs regardless of call order.
+    final storage = ref.read(storageServiceProvider);
+    final now = DateTime.now();
+
+    final activeRuns = storage.runsBox.values
+        .where((r) => r.status == RunStatus.active)
+        .toList();
 
     if (activeRuns.isEmpty) {
       await ForegroundService.stop();
       return;
     }
 
-    final storage = ref.read(storageServiceProvider);
-    final now = DateTime.now();
-
     final summaries = activeRuns.map((run) {
       final robotName = storage.robotsBox.get(run.robotId)?.name ?? 'Robot';
-      final mins = run.remainingAt(now).inMinutes;
-      return RunSummary(robotName: robotName, remainingMinutes: mins);
+      final remainingMinutes = run.remainingAt(now).inMinutes.clamp(0, 9999);
+      return RunSummary(robotName: robotName, remainingMinutes: remainingMinutes);
     }).toList();
 
     await ForegroundService.start(summaries);

@@ -113,23 +113,10 @@ class RunTimerTaskHandler extends TaskHandler {
     final activeRuns =
         runsBox.values.where((r) => r.status == RunStatus.active).toList();
 
-    // Refresh notification with robot names and remaining times
-    if (activeRuns.isNotEmpty) {
-      final count = activeRuns.length;
-      final notifTitle = count == 1 ? '1 active run' : '$count active runs';
-      final notifText = activeRuns.map((run) {
-        final robotName = robotsBox.get(run.robotId)?.name ?? 'Robot';
-        final mins = run.remainingAt(now).inMinutes;
-        final s = RunSummary(robotName: robotName, remainingMinutes: mins);
-        return '${s.robotName} · ${s.timeLabel}';
-      }).join('\n');
-      await FlutterForegroundTask.updateService(
-        notificationTitle: notifTitle,
-        notificationText: notifText,
-      );
-    }
-
-    // Transition any runs whose timer has expired
+    // Only transition expired runs — the main isolate owns all notification
+    // text updates; letting the background isolate rewrite it every 30 s with
+    // its own (potentially stale) Hive cache caused the count to revert.
+    bool anyTransitioned = false;
     for (final run in activeRuns) {
       final deadline = run.startedAt.add(run.plannedDuration);
       if (!now.isBefore(deadline)) {
@@ -139,7 +126,22 @@ class RunTimerTaskHandler extends TaskHandler {
         );
         final robotName = robotsBox.get(run.robotId)?.name ?? 'Robot';
         await _showPickupNotification(robotName);
+        anyTransitioned = true;
       }
+    }
+
+    // After a transition, update the notification to reflect the new count.
+    // Use a simple summary — the main isolate will send the full text next time
+    // the user opens the app or a new run is started.
+    if (anyTransitioned) {
+      final remaining = runsBox.values
+          .where((r) => r.status == RunStatus.active)
+          .length;
+      await FlutterForegroundTask.updateService(
+        notificationTitle: 'PUDU-OPS',
+        notificationText:
+            remaining == 0 ? 'All robots finished' : '$remaining active runs',
+      );
     }
     // Service lifecycle is managed exclusively by the main isolate via
     // RunsController._syncForegroundService(). The background isolate never
@@ -199,7 +201,9 @@ class ForegroundService {
 
     final count = runs.length;
     final title = count == 1 ? '1 active run' : '$count active runs';
-    final text = runs.map((r) => '${r.robotName} · ${r.timeLabel}').join('\n');
+    final names = runs.take(2).map((r) => r.robotName).join(', ');
+    final suffix = count > 2 ? ' +${count - 2}' : '';
+    final text = '$names$suffix — active';
 
     final isRunning = await FlutterForegroundTask.isRunningService;
 
