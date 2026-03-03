@@ -31,6 +31,15 @@ class RobotsRepository {
 
   Future<void> delete(String id) async {
     await _box.delete(id);
+    // Cascade: remove all runs that belong to this robot
+    final runsBox = storage.runsBox;
+    final orphanIds = runsBox.values
+        .where((r) => r.robotId == id)
+        .map((r) => r.id)
+        .toList();
+    for (final runId in orphanIds) {
+      await runsBox.delete(runId);
+    }
   }
 
   Future<void> setEnabled({

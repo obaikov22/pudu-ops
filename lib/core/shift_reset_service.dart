@@ -1,5 +1,4 @@
 import '../services/storage_service.dart';
-import '../models/robot.dart';
 import 'shift_logic.dart';
 
 class ShiftResetService {
@@ -14,7 +13,7 @@ class ShiftResetService {
     final currentShiftStart = info.shiftStart.toIso8601String();
 
     final metaBox = storage.metaBox;
-    final previous = metaBox.get(_lastShiftStartKey) as String?;
+    final previous = metaBox.get(_lastShiftStartKey);
 
     if (previous == currentShiftStart) return; // Та же смена — ничего не делаем
 

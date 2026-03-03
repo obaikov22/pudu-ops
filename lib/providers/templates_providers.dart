@@ -2,7 +2,6 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:uuid/uuid.dart';
 
 import '../models/template.dart';
-import '../services/storage_service.dart';
 import 'storage_providers.dart';
 
 final _uuid = const Uuid();

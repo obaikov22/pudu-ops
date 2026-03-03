@@ -47,18 +47,22 @@ class RunsController extends Notifier<List<RunRecord>> {
     // In-app 5 s timer handles UI updates while the app is in the foreground.
     // The foreground service handles the same transitions when backgrounded.
     _autoFinishTimer = Timer.periodic(const Duration(seconds: 5), (_) async {
-      final now = DateTime.now();
-      final storage = ref.read(storageServiceProvider);
-      final activeRuns = state.where((r) => r.status == RunStatus.active);
+      try {
+        final now = DateTime.now();
+        final storage = ref.read(storageServiceProvider);
+        final activeRuns = state.where((r) => r.status == RunStatus.active);
 
-      for (final run in activeRuns) {
-        if (run.remainingAt(now) <= Duration.zero) {
-          final robot = storage.robotsBox.get(run.robotId);
-          final robotName = robot?.name ?? 'Robot';
+        for (final run in activeRuns) {
+          if (run.remainingAt(now) <= Duration.zero) {
+            final robot = storage.robotsBox.get(run.robotId);
+            final robotName = robot?.name ?? 'Robot';
 
-          await finish(run.id);
-          await NotificationService.showAwaitingPickup(robotName);
+            await finish(run.id);
+            await NotificationService.showAwaitingPickup(robotName, run.robotId);
+          }
         }
+      } catch (_) {
+        // Swallow exceptions so the timer keeps ticking on next interval
       }
     });
   }

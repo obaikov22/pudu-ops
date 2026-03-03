@@ -59,15 +59,25 @@ class BackupService {
       content = await File(path).readAsString();
     }
 
-    final data = jsonDecode(content) as Map<String, dynamic>;
+    final Map<String, dynamic> data;
+    try {
+      data = jsonDecode(content) as Map<String, dynamic>;
+    } catch (_) {
+      throw Exception('Invalid backup file: not valid JSON');
+    }
 
-    final robotsList = (data['robots'] as List)
-        .map((e) => Robot.fromJson(e as Map<String, dynamic>))
-        .toList();
-
-    final templatesList = (data['templates'] as List)
-        .map((e) => Template.fromJson(e as Map<String, dynamic>))
-        .toList();
+    final List<Robot> robotsList;
+    final List<Template> templatesList;
+    try {
+      robotsList = (data['robots'] as List)
+          .map((e) => Robot.fromJson(e as Map<String, dynamic>))
+          .toList();
+      templatesList = (data['templates'] as List)
+          .map((e) => Template.fromJson(e as Map<String, dynamic>))
+          .toList();
+    } catch (e) {
+      throw Exception('Invalid backup file: $e');
+    }
 
     for (final robot in robotsList) {
       await _storage.robotsBox.put(robot.id, robot);

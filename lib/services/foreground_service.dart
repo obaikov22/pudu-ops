@@ -125,7 +125,7 @@ class RunTimerTaskHandler extends TaskHandler {
           run.copyWith(status: RunStatus.awaitingPickup, finishedAt: now),
         );
         final robotName = robotsBox.get(run.robotId)?.name ?? 'Robot';
-        await _showPickupNotification(robotName);
+        await _showPickupNotification(robotName, run.robotId);
         anyTransitioned = true;
       }
     }
@@ -137,20 +137,24 @@ class RunTimerTaskHandler extends TaskHandler {
       final remaining = runsBox.values
           .where((r) => r.status == RunStatus.active)
           .length;
-      await FlutterForegroundTask.updateService(
-        notificationTitle: 'PUDU-OPS',
-        notificationText:
-            remaining == 0 ? 'All robots finished' : '$remaining active runs',
-      );
+      try {
+        await FlutterForegroundTask.updateService(
+          notificationTitle: 'PUDU-OPS',
+          notificationText:
+              remaining == 0 ? 'All robots finished' : '$remaining active runs',
+        );
+      } catch (_) {
+        // Service may be stopping concurrently; ignore
+      }
     }
     // Service lifecycle is managed exclusively by the main isolate via
     // RunsController._syncForegroundService(). The background isolate never
     // calls stopService() so it cannot race with new runs being started.
   }
 
-  Future<void> _showPickupNotification(String robotName) async {
+  Future<void> _showPickupNotification(String robotName, String robotId) async {
     await _plugin.show(
-      robotName.hashCode,
+      robotId.hashCode,
       '🤖 Robot ready for pickup!',
       '$robotName has finished cleaning. Time to collect!',
       const NotificationDetails(

@@ -18,7 +18,10 @@ class NotificationService {
     _initialized = true;
   }
 
-  static Future<void> showAwaitingPickup(String robotName) async {
+  static Future<void> showAwaitingPickup(
+    String robotName,
+    String robotId,
+  ) async {
     const androidDetails = AndroidNotificationDetails(
       'awaiting_pickup',
       'Awaiting Pickup',
@@ -31,7 +34,7 @@ class NotificationService {
     const details = NotificationDetails(android: androidDetails);
 
     await _plugin.show(
-      robotName.hashCode,
+      robotId.hashCode,
       '🤖 Robot ready for pickup!',
       '$robotName has finished cleaning. Time to collect!',
       details,

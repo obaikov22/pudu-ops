@@ -347,6 +347,7 @@ class _BackupCardState extends ConsumerState<_BackupCard> {
     try {
       final result = await _backup.importBackup();
       if (result == null) return; // пользователь отменил
+      if (!mounted) return;
       ref.read(robotsControllerProvider.notifier).refresh();
       ref.read(templatesControllerProvider.notifier).refresh();
       if (mounted) {

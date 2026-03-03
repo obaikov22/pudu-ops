@@ -50,8 +50,8 @@ class UpdateService {
   }
 
   static bool _isNewer(String remote, String current) {
-    final r = remote.split('.').map(int.parse).toList();
-    final c = current.split('.').map(int.parse).toList();
+    final r = remote.split('.').map((s) => int.tryParse(s) ?? 0).toList();
+    final c = current.split('.').map((s) => int.tryParse(s) ?? 0).toList();
 
     for (int i = 0; i < 3; i++) {
       final rv = i < r.length ? r[i] : 0;
