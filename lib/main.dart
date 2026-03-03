@@ -7,6 +7,8 @@ import 'features/today/today_screen.dart';
 import 'features/robots/robots_screen.dart';
 import 'features/templates/templates_screen.dart';
 import 'features/history/history_screen.dart';
+import 'features/planner/planner_screen.dart';
+import 'features/settings/settings_screen.dart';
 import 'services/storage_service.dart';
 import 'core/shift_reset_service.dart';
 import 'package:flutter_foreground_task/flutter_foreground_task.dart';
@@ -332,7 +334,7 @@ class _RootScaffoldState extends ConsumerState<RootScaffold> {
                               ),
                             ),
                             child: Text(
-                              'v2.2.4 Beta',
+                              'v2.3.0 Beta',
                               style: theme.textTheme.labelSmall?.copyWith(
                                 color: _primary,
                                 fontWeight: FontWeight.w600,
@@ -390,6 +392,8 @@ class _RootScaffoldState extends ConsumerState<RootScaffold> {
         return const TemplatesScreen();
       case 3:
         return const HistoryScreen();
+      case 4:
+        return const PlannerScreen();
       default:
         return const TodayScreen();
     }
@@ -413,7 +417,7 @@ class _RootScaffoldState extends ConsumerState<RootScaffold> {
                       crossAxisAlignment: CrossAxisAlignment.start,
                       children: [
                         Text(
-                          'PUDU-OPS 2.2.4',
+                          'PUDU-OPS 2.3.0',
                           style: theme.textTheme.titleLarge?.copyWith(
                             fontWeight: FontWeight.w800,
                             letterSpacing: 0.6,
@@ -425,6 +429,17 @@ class _RootScaffoldState extends ConsumerState<RootScaffold> {
                           style: theme.textTheme.bodySmall,
                         ),
                       ],
+                    ),
+                  ),
+                  IconButton(
+                    icon: const Icon(Icons.settings_outlined),
+                    color: const Color(0xFF8B92A5),
+                    tooltip: 'Settings',
+                    onPressed: () => Navigator.push(
+                      context,
+                      MaterialPageRoute<void>(
+                        builder: (_) => const SettingsScreen(),
+                      ),
                     ),
                   ),
                   IconButton(
@@ -466,6 +481,11 @@ class _RootScaffoldState extends ConsumerState<RootScaffold> {
             icon: Icon(Icons.history_outlined),
             activeIcon: Icon(Icons.history),
             label: 'History',
+          ),
+          BottomNavigationBarItem(
+            icon: Icon(Icons.auto_awesome_outlined),
+            activeIcon: Icon(Icons.auto_awesome),
+            label: 'Planner',
           ),
         ],
       ),
