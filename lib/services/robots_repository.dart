@@ -33,12 +33,21 @@ class RobotsRepository {
     await _box.delete(id);
     // Cascade: remove all runs that belong to this robot
     final runsBox = storage.runsBox;
-    final orphanIds = runsBox.values
+    final orphanRunIds = runsBox.values
         .where((r) => r.robotId == id)
         .map((r) => r.id)
         .toList();
-    for (final runId in orphanIds) {
+    for (final runId in orphanRunIds) {
       await runsBox.delete(runId);
+    }
+    // Cascade: remove all templates that belong to this robot
+    final templatesBox = storage.templatesBox;
+    final orphanTemplateIds = templatesBox.values
+        .where((t) => t.robotId == id)
+        .map((t) => t.id)
+        .toList();
+    for (final templateId in orphanTemplateIds) {
+      await templatesBox.delete(templateId);
     }
   }
 
