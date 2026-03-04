@@ -1,3 +1,5 @@
+import 'dart:async';
+
 import 'package:flutter/material.dart';
 import 'package:flutter_markdown/flutter_markdown.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
@@ -50,8 +52,10 @@ class _PlannerScreenState extends ConsumerState<PlannerScreen>
       final recentRuns =
           storage.runsBox.values.where((r) => r.startedAt.isAfter(cutoff)).toList();
 
+      final language = await AiPlannerService.getLanguage();
       final result = await AiPlannerService.generateShiftPlan(
         apiKey: apiKey,
+        language: language,
         robots: robots,
         templates: templates,
         recentRuns: recentRuns,
@@ -97,21 +101,7 @@ class _PlannerScreenState extends ConsumerState<PlannerScreen>
       );
     }
 
-    if (_isLoading) {
-      return const Center(
-        child: Column(
-          mainAxisSize: MainAxisSize.min,
-          children: [
-            CircularProgressIndicator(color: _primary),
-            SizedBox(height: 16),
-            Text(
-              'Generating shift plan...',
-              style: TextStyle(color: _textSecondary),
-            ),
-          ],
-        ),
-      );
-    }
+    if (_isLoading) return const _PlannerLoadingWidget();
 
     if (_error == 'no_api_key') {
       return _EmptyState(
@@ -146,7 +136,7 @@ class _PlannerScreenState extends ConsumerState<PlannerScreen>
             Container(
               padding: const EdgeInsets.all(20),
               decoration: BoxDecoration(
-                color: _primary.withOpacity(0.12),
+                color: _primary.withValues(alpha: 0.12),
                 shape: BoxShape.circle,
               ),
               child: const Icon(
@@ -185,6 +175,135 @@ class _PlannerScreenState extends ConsumerState<PlannerScreen>
                     borderRadius: BorderRadius.circular(12),
                   ),
                 ),
+              ),
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+}
+
+class _PlannerLoadingWidget extends StatefulWidget {
+  const _PlannerLoadingWidget();
+
+  @override
+  State<_PlannerLoadingWidget> createState() => _PlannerLoadingWidgetState();
+}
+
+class _PlannerLoadingWidgetState extends State<_PlannerLoadingWidget>
+    with TickerProviderStateMixin {
+  late AnimationController _pulseController;
+  late Animation<double> _pulseAnimation;
+  int _dotCount = 0;
+  late Timer _dotTimer;
+
+  final List<String> _messages = [
+    'Анализирую роботов...',
+    'Проверяю историю запусков...',
+    'Рассчитываю оптимальное расписание...',
+    'Балансирую нагрузку...',
+    'Почти готово...',
+  ];
+  int _messageIndex = 0;
+  late Timer _messageTimer;
+
+  @override
+  void initState() {
+    super.initState();
+
+    _pulseController = AnimationController(
+      vsync: this,
+      duration: const Duration(seconds: 2),
+    )..repeat(reverse: true);
+
+    _pulseAnimation = Tween<double>(begin: 0.6, end: 1.0).animate(
+      CurvedAnimation(parent: _pulseController, curve: Curves.easeInOut),
+    );
+
+    _dotTimer = Timer.periodic(const Duration(milliseconds: 500), (_) {
+      if (mounted) setState(() => _dotCount = (_dotCount + 1) % 4);
+    });
+
+    _messageTimer = Timer.periodic(const Duration(seconds: 3), (_) {
+      if (mounted) {
+        setState(() => _messageIndex = (_messageIndex + 1) % _messages.length);
+      }
+    });
+  }
+
+  @override
+  void dispose() {
+    _pulseController.dispose();
+    _dotTimer.cancel();
+    _messageTimer.cancel();
+    super.dispose();
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    final dots = '.' * _dotCount;
+    final spacer = ' ' * (3 - _dotCount);
+
+    return Center(
+      child: Padding(
+        padding: const EdgeInsets.all(32),
+        child: Column(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            AnimatedBuilder(
+              animation: _pulseAnimation,
+              builder: (context, child) => Opacity(
+                opacity: _pulseAnimation.value,
+                child: Container(
+                  width: 80,
+                  height: 80,
+                  decoration: BoxDecoration(
+                    shape: BoxShape.circle,
+                    color: _primary.withValues(alpha: 0.15),
+                    border: Border.all(
+                      color: _primary.withValues(alpha: 0.4),
+                      width: 2,
+                    ),
+                  ),
+                  child: const Icon(
+                    Icons.auto_awesome,
+                    color: _primary,
+                    size: 36,
+                  ),
+                ),
+              ),
+            ),
+            const SizedBox(height: 32),
+            Text(
+              'Generating plan$dots$spacer',
+              style: const TextStyle(
+                color: Colors.white,
+                fontSize: 18,
+                fontWeight: FontWeight.w600,
+                fontFamily: 'monospace',
+              ),
+            ),
+            const SizedBox(height: 12),
+            AnimatedSwitcher(
+              duration: const Duration(milliseconds: 400),
+              child: Text(
+                _messages[_messageIndex],
+                key: ValueKey(_messageIndex),
+                style: const TextStyle(
+                  color: _textSecondary,
+                  fontSize: 14,
+                ),
+                textAlign: TextAlign.center,
+              ),
+            ),
+            const SizedBox(height: 32),
+            ClipRRect(
+              borderRadius: BorderRadius.circular(4),
+              child: LinearProgressIndicator(
+                backgroundColor: _primary.withValues(alpha: 0.15),
+                valueColor: const AlwaysStoppedAnimation(_primary),
+                minHeight: 3,
               ),
             ),
           ],
@@ -300,9 +419,9 @@ class _ErrorState extends StatelessWidget {
             Container(
               padding: const EdgeInsets.all(16),
               decoration: BoxDecoration(
-                color: Colors.red.withOpacity(0.1),
+                color: Colors.red.withValues(alpha: 0.1),
                 borderRadius: BorderRadius.circular(12),
-                border: Border.all(color: Colors.red.withOpacity(0.3)),
+                border: Border.all(color: Colors.red.withValues(alpha: 0.3)),
               ),
               child: Row(
                 children: [

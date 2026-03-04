@@ -7,6 +7,25 @@ const _surface = Color(0xFF13151C);
 const _border = Color(0xFF1E2130);
 const _textSecondary = Color(0xFF8B92A5);
 
+const _languages = [
+  'Arabic',
+  'Chinese',
+  'English',
+  'French',
+  'German',
+  'Italian',
+  'Japanese',
+  'Kazakh',
+  'Korean',
+  'Polish',
+  'Portuguese',
+  'Romanian',
+  'Russian',
+  'Spanish',
+  'Turkish',
+  'Ukrainian',
+];
+
 class SettingsScreen extends StatefulWidget {
   const SettingsScreen({super.key});
 
@@ -18,18 +37,21 @@ class _SettingsScreenState extends State<SettingsScreen> {
   final _controller = TextEditingController();
   bool _obscure = true;
   bool _loading = true;
+  String _selectedLanguage = 'Russian';
 
   @override
   void initState() {
     super.initState();
-    _loadKey();
+    _loadSettings();
   }
 
-  Future<void> _loadKey() async {
+  Future<void> _loadSettings() async {
     final key = await AiPlannerService.getApiKey();
+    final language = await AiPlannerService.getLanguage();
     if (!mounted) return;
     setState(() {
       _controller.text = key ?? '';
+      _selectedLanguage = language;
       _loading = false;
     });
   }
@@ -38,7 +60,7 @@ class _SettingsScreenState extends State<SettingsScreen> {
     await AiPlannerService.saveApiKey(_controller.text.trim());
     if (!mounted) return;
     ScaffoldMessenger.of(context).showSnackBar(
-      const SnackBar(content: Text('API key saved')),
+      const SnackBar(content: Text('Settings saved')),
     );
     Navigator.pop(context);
   }
@@ -124,6 +146,53 @@ class _SettingsScreenState extends State<SettingsScreen> {
                             color: _textSecondary,
                             fontSize: 12,
                           ),
+                        ),
+                      ],
+                    ),
+                  ),
+                  const SizedBox(height: 12),
+                  Container(
+                    padding: const EdgeInsets.all(16),
+                    decoration: BoxDecoration(
+                      color: _surface,
+                      borderRadius: BorderRadius.circular(12),
+                      border: Border.all(color: _border),
+                    ),
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        const Text(
+                          'AI Response Language',
+                          style: TextStyle(
+                            color: Colors.white,
+                            fontWeight: FontWeight.w600,
+                            fontSize: 15,
+                          ),
+                        ),
+                        const SizedBox(height: 12),
+                        DropdownButton<String>(
+                          value: _selectedLanguage,
+                          isExpanded: true,
+                          dropdownColor: const Color(0xFF13151C),
+                          style: const TextStyle(color: Colors.white, fontSize: 15),
+                          underline: Container(
+                            height: 1,
+                            color: _border,
+                          ),
+                          iconEnabledColor: _textSecondary,
+                          items: _languages
+                              .map(
+                                (lang) => DropdownMenuItem(
+                                  value: lang,
+                                  child: Text(lang),
+                                ),
+                              )
+                              .toList(),
+                          onChanged: (val) async {
+                            if (val == null) return;
+                            setState(() => _selectedLanguage = val);
+                            await AiPlannerService.saveLanguage(val);
+                          },
                         ),
                       ],
                     ),

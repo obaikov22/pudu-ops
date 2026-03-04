@@ -12,10 +12,12 @@ class PlannerException implements Exception {
 
 class AiPlannerService {
   static const _apiKeyPref = 'anthropic_api_key';
+  static const _languagePref = 'ai_language';
+  static const _defaultLanguage = 'Russian';
   static const _apiUrl = 'https://api.anthropic.com/v1/messages';
   static const _model = 'claude-opus-4-6';
 
-  static const _systemPrompt = '''
+  static String _buildSystemPrompt(String language) => '''
 You are a shift planning assistant for a cleaning robot operator at Bloomberg London office.
 
 SHIFT INFO:
@@ -72,7 +74,7 @@ FORMATTING RULES:
 - Never use Markdown tables
 - Always use the exact section headers shown above (with emojis)
 - Always include all 4 sections even if some have minimal content
-- Always respond in Russian, regardless of the language of the input data''';
+- Always respond in $language, regardless of the language of the input data''';
 
   static Future<String?> getApiKey() async {
     final prefs = await SharedPreferences.getInstance();
@@ -84,8 +86,19 @@ FORMATTING RULES:
     await prefs.setString(_apiKeyPref, key);
   }
 
+  static Future<String> getLanguage() async {
+    final prefs = await SharedPreferences.getInstance();
+    return prefs.getString(_languagePref) ?? _defaultLanguage;
+  }
+
+  static Future<void> saveLanguage(String language) async {
+    final prefs = await SharedPreferences.getInstance();
+    await prefs.setString(_languagePref, language);
+  }
+
   static Future<String> generateShiftPlan({
     required String apiKey,
+    required String language,
     required List<Robot> robots,
     required List<Template> templates,
     required List<RunRecord> recentRuns,
@@ -99,7 +112,7 @@ FORMATTING RULES:
         data: {
           'model': _model,
           'max_tokens': 2048,
-          'system': _systemPrompt,
+          'system': _buildSystemPrompt(language),
           'messages': [
             {'role': 'user', 'content': userMessage},
           ],
