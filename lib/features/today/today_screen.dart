@@ -4,6 +4,7 @@ import 'dart:async';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:url_launcher/url_launcher.dart';
 
 import '../../models/run_record.dart';
 import '../../models/run_status.dart';
@@ -26,6 +27,28 @@ String _formatTime(DateTime dt) {
   final m = local.minute.toString().padLeft(2, '0');
   final s = local.second.toString().padLeft(2, '0');
   return '$h:$m:$s';
+}
+
+String buildWhatsAppMessage({
+  required String robotName,
+  required String robotNotes,
+  required List<String> cores,
+}) {
+  final floor = robotNotes.trim().split(' ').first;
+  const southFloors = ['L1S', 'L2S', 'L4S', 'L5S'];
+  if (southFloors.contains(floor.toUpperCase())) {
+    return '$floor $robotName is working';
+  }
+  final coreStr = cores.join('-');
+  return '$floor $robotName is working in $coreStr';
+}
+
+Future<void> _sendWhatsApp(String message) async {
+  final encoded = Uri.encodeComponent(message);
+  final url = Uri.parse('whatsapp://send?text=$encoded');
+  if (await canLaunchUrl(url)) {
+    await launchUrl(url);
+  }
 }
 
 class TodayScreen extends ConsumerWidget {
@@ -598,13 +621,40 @@ class _TemplateWithStepsTile extends ConsumerWidget {
                     label: 'Start',
                     color: _primary,
                     onPressed: canUseRobot
-                        ? () => ref
-                            .read(runsControllerProvider.notifier)
-                            .startFromTemplateStep(
-                              template: template,
-                              task: task,
-                              stepIndex: index,
-                            )
+                        ? () {
+                            final message = buildWhatsAppMessage(
+                              robotName: robotName,
+                              robotNotes: r.note ?? '',
+                              cores: task.cores,
+                            );
+                            showDialog<void>(
+                              context: context,
+                              builder: (ctx) => _WhatsAppDialog(
+                                message: message,
+                                onSkip: () {
+                                  Navigator.pop(ctx);
+                                  ref
+                                      .read(runsControllerProvider.notifier)
+                                      .startFromTemplateStep(
+                                        template: template,
+                                        task: task,
+                                        stepIndex: index,
+                                      );
+                                },
+                                onSend: () {
+                                  Navigator.pop(ctx);
+                                  ref
+                                      .read(runsControllerProvider.notifier)
+                                      .startFromTemplateStep(
+                                        template: template,
+                                        task: task,
+                                        stepIndex: index,
+                                      );
+                                  _sendWhatsApp(message);
+                                },
+                              ),
+                            );
+                          }
                         : null,
                   ),
                 ],
@@ -612,6 +662,128 @@ class _TemplateWithStepsTile extends ConsumerWidget {
             );
           }),
         ],
+      ),
+    );
+  }
+}
+
+// ─────────────────────────────────────────
+// WHATSAPP DIALOG
+// ─────────────────────────────────────────
+
+class _WhatsAppDialog extends StatelessWidget {
+  const _WhatsAppDialog({
+    required this.message,
+    required this.onSkip,
+    required this.onSend,
+  });
+
+  final String message;
+  final VoidCallback onSkip;
+  final VoidCallback onSend;
+
+  @override
+  Widget build(BuildContext context) {
+    const whatsappGreen = Color(0xFF25D366);
+    return Dialog(
+      backgroundColor: Colors.transparent,
+      child: Container(
+        decoration: BoxDecoration(
+          color: const Color(0xFF13151C),
+          borderRadius: BorderRadius.circular(24),
+          border: Border.all(color: _primary.withValues(alpha: 0.2)),
+        ),
+        child: Column(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            // Header
+            Container(
+              width: double.infinity,
+              padding: const EdgeInsets.fromLTRB(24, 24, 24, 20),
+              decoration: BoxDecoration(
+                borderRadius:
+                    const BorderRadius.vertical(top: Radius.circular(24)),
+                gradient: LinearGradient(
+                  colors: [
+                    whatsappGreen.withValues(alpha: 0.15),
+                    whatsappGreen.withValues(alpha: 0.03),
+                  ],
+                ),
+              ),
+              child: Row(
+                children: [
+                  Container(
+                    padding: const EdgeInsets.all(10),
+                    decoration: BoxDecoration(
+                      color: whatsappGreen.withValues(alpha: 0.15),
+                      borderRadius: BorderRadius.circular(12),
+                      border: Border.all(
+                          color: whatsappGreen.withValues(alpha: 0.3)),
+                    ),
+                    child: const Icon(Icons.chat,
+                        color: whatsappGreen, size: 22),
+                  ),
+                  const SizedBox(width: 14),
+                  const Text(
+                    'Send WhatsApp report?',
+                    style: TextStyle(
+                        color: Colors.white,
+                        fontWeight: FontWeight.w700,
+                        fontSize: 16),
+                  ),
+                ],
+              ),
+            ),
+            // Message preview
+            Padding(
+              padding: const EdgeInsets.fromLTRB(24, 16, 24, 16),
+              child: Container(
+                width: double.infinity,
+                padding: const EdgeInsets.all(14),
+                decoration: BoxDecoration(
+                  color: const Color(0xFF1C2A1E),
+                  borderRadius: BorderRadius.circular(12),
+                  border: Border.all(
+                      color: whatsappGreen.withValues(alpha: 0.2)),
+                ),
+                child: Text(
+                  message,
+                  style: const TextStyle(
+                      color: Colors.white70, fontSize: 14),
+                ),
+              ),
+            ),
+            Divider(
+                height: 1, color: Colors.white.withValues(alpha: 0.07)),
+            // Buttons
+            Row(
+              children: [
+                Expanded(
+                  child: TextButton(
+                    onPressed: onSkip,
+                    child: const Text('Skip',
+                        style: TextStyle(color: _textSecondary)),
+                  ),
+                ),
+                Container(
+                    width: 1,
+                    height: 48,
+                    color: Colors.white.withValues(alpha: 0.07)),
+                Expanded(
+                  child: TextButton(
+                    onPressed: onSend,
+                    child: const Text(
+                      'Send',
+                      style: TextStyle(
+                          color: whatsappGreen,
+                          fontWeight: FontWeight.w700),
+                    ),
+                  ),
+                ),
+              ],
+            ),
+          ],
+        ),
       ),
     );
   }
