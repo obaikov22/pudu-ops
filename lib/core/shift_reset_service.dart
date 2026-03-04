@@ -27,5 +27,15 @@ class ShiftResetService {
         robot.copyWith(selectedForToday: false),
       );
     }
+
+    final templatesBox = storage.templatesBox;
+    for (final template in templatesBox.values) {
+      if (template.enabled) {
+        await templatesBox.put(
+          template.id,
+          template.copyWith(enabled: false),
+        );
+      }
+    }
   }
 }
