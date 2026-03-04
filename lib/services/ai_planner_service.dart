@@ -72,7 +72,7 @@ FORMATTING RULES:
 - Never use Markdown tables
 - Always use the exact section headers shown above (with emojis)
 - Always include all 4 sections even if some have minimal content
-- Respond in the same language the user writes in (Russian or English)''';
+- Always respond in Russian, regardless of the language of the input data''';
 
   static Future<String?> getApiKey() async {
     final prefs = await SharedPreferences.getInstance();
