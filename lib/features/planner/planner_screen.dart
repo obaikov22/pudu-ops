@@ -19,7 +19,10 @@ class PlannerScreen extends ConsumerStatefulWidget {
   ConsumerState<PlannerScreen> createState() => _PlannerScreenState();
 }
 
-class _PlannerScreenState extends ConsumerState<PlannerScreen> {
+class _PlannerScreenState extends ConsumerState<PlannerScreen>
+    with AutomaticKeepAliveClientMixin {
+  @override
+  bool get wantKeepAlive => true;
   bool _isLoading = false;
   String? _result;
   String? _error;
@@ -83,6 +86,7 @@ class _PlannerScreenState extends ConsumerState<PlannerScreen> {
 
   @override
   Widget build(BuildContext context) {
+    super.build(context);
     final robots = ref.watch(robotsControllerProvider);
     final enabledCount = robots.where((r) => r.enabled).length;
 

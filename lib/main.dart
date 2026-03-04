@@ -334,7 +334,7 @@ class _RootScaffoldState extends ConsumerState<RootScaffold> {
                               ),
                             ),
                             child: Text(
-                              'v2.3.0 Beta',
+                              'v2.3.1 Beta',
                               style: theme.textTheme.labelSmall?.copyWith(
                                 color: _primary,
                                 fontWeight: FontWeight.w600,
@@ -382,23 +382,6 @@ class _RootScaffoldState extends ConsumerState<RootScaffold> {
     );
   }
 
-  Widget _buildCurrentTab() {
-    switch (_currentIndex) {
-      case 0:
-        return const TodayScreen();
-      case 1:
-        return const RobotsScreen();
-      case 2:
-        return const TemplatesScreen();
-      case 3:
-        return const HistoryScreen();
-      case 4:
-        return const PlannerScreen();
-      default:
-        return const TodayScreen();
-    }
-  }
-
   @override
   Widget build(BuildContext context) {
     final theme = Theme.of(context);
@@ -417,7 +400,7 @@ class _RootScaffoldState extends ConsumerState<RootScaffold> {
                       crossAxisAlignment: CrossAxisAlignment.start,
                       children: [
                         Text(
-                          'PUDU-OPS 2.3.0',
+                          'PUDU-OPS 2.3.1',
                           style: theme.textTheme.titleLarge?.copyWith(
                             fontWeight: FontWeight.w800,
                             letterSpacing: 0.6,
@@ -453,7 +436,16 @@ class _RootScaffoldState extends ConsumerState<RootScaffold> {
             ),
             const SizedBox(height: 8),
             Expanded(
-              child: _buildCurrentTab(),
+              child: IndexedStack(
+                index: _currentIndex,
+                children: const [
+                  TodayScreen(),
+                  RobotsScreen(),
+                  TemplatesScreen(),
+                  HistoryScreen(),
+                  PlannerScreen(),
+                ],
+              ),
             ),
           ],
         ),

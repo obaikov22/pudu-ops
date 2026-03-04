@@ -18,20 +18,61 @@ class AiPlannerService {
   static const _systemPrompt = '''
 You are a shift planning assistant for a cleaning robot operator at Bloomberg London office.
 
-Shift hours: 20:00 – 05:00
-Break: 00:00 – 01:00 (robots can finish during break and wait on the floor)
-After break (01:00+): operator washes each robot (~10 min each), then charges them — no second runs
-Washing starts after 01:00, so last robot should finish no later than 04:30
+SHIFT INFO:
+- Shift: 20:00 – 05:00
+- Break: 00:00 – 01:00 (robots can finish and wait on floor during break)
+- After break (01:00+): operator washes each robot (~10 min each), then charges — no second runs
+- Last robot should ideally start no later than 23:30 so it finishes before or around 02:00–03:00
 
-Your job: recommend a balanced, realistic schedule for tonight.
-- Recommend only a manageable number of robots (not all 19)
-- Each robot runs once, then gets washed and charged
-- Space out start times so the operator isn't overwhelmed
-- Consider which floors each robot covers (in robot notes: L2, L3, L4S, etc.)
-- Try to cover different floors/zones across the shift
-- Format output as a clear, readable schedule with start times and brief reasoning
+IMPORTANT ABOUT TEMPLATES:
+- Each template has multiple steps. The operator runs ONE step per session, not the whole template.
+- A step = one robot deployment to one zone for X minutes.
+- The run history shows exactly which step was run each day.
+- Use the step durations (not template totals) when planning the schedule.
+- Recommend specific steps for each robot, not just the robot name.
 
-Respond in Russian.''';
+YOUR TASK:
+Recommend a realistic, balanced schedule for tonight. Choose a manageable number of robots (not all of them). Prioritize coverage across different floors/zones.
+
+STRICT OUTPUT FORMAT — always use exactly this structure, in this order:
+
+---
+
+## 📋 Summary
+[2-3 sentences: how many robots, total floor coverage, overall workload assessment]
+
+---
+
+## 🤖 Recommended Robots
+[For each recommended robot, use exactly this format:]
+
+**[RobotName]** — [Floor/Zone from notes]
+⏰ Start: [HH:MM] | ⏱ ~[X] min | 🏁 Finish: ~[HH:MM]
+💬 [One sentence reason for this robot/timing]
+
+[blank line between each robot]
+
+---
+
+## 🧹 Wash & Charge Schedule (after 01:00)
+[List each robot with wash time, same order as above:]
+- 01:00 — Wash [RobotName] (~10 min)
+- 01:10 — Wash [RobotName] (~10 min)
+- [etc.]
+- [HH:MM] — ✅ All robots on charge
+
+---
+
+## ⚠️ Notes
+[2-4 bullet points with observations, warnings, or tips based on the data. If nothing notable, write "No issues detected."]
+
+---
+
+FORMATTING RULES:
+- Never use Markdown tables
+- Always use the exact section headers shown above (with emojis)
+- Always include all 4 sections even if some have minimal content
+- Respond in the same language the user writes in (Russian or English)''';
 
   static Future<String?> getApiKey() async {
     final prefs = await SharedPreferences.getInstance();
@@ -113,23 +154,33 @@ Respond in Russian.''';
     }
     buf.writeln();
 
-    // Templates (enabled ones)
+    // Templates — show each step individually
     final enabledTemplates = templates.where((t) => t.enabled).toList();
-    buf.writeln('TEMPLATES:');
+    buf.writeln('TEMPLATES (with individual steps):');
     if (enabledTemplates.isEmpty) {
       buf.writeln('(none)');
     } else {
       for (final t in enabledTemplates) {
         final robot = robots.where((r) => r.id == t.robotId).firstOrNull;
-        final robotName = robot?.name ?? 'Unknown';
-        buf.writeln(
-          '• ${t.name} → robot: $robotName, duration: ${t.totalDurationMinutes}m, scheduled: ${t.formattedStartTime}',
-        );
+        if (robot == null) continue;
+        final floorInfo =
+            (robot.note != null && robot.note!.isNotEmpty) ? robot.note! : robot.floor;
+        buf.writeln('${robot.name} ($floorInfo):');
+        for (var i = 0; i < t.tasks.length; i++) {
+          final task = t.tasks[i];
+          final label =
+              task.label.trim().isEmpty ? 'Step ${i + 1}' : task.label;
+          final cores = task.cores.join(', ');
+          buf.writeln(
+            '  • Step ${i + 1}: "$label" — ${task.durationMinutes} min [zones: $cores]',
+          );
+        }
+        buf.writeln();
       }
     }
     buf.writeln();
 
-    // Recent runs (last 7 days, completed)
+    // Recent runs (last 7 days) — include stepSummary
     buf.writeln('RECENT RUN HISTORY (last 7 days):');
     final completedRuns =
         recentRuns.where((r) => r.finishedAt != null).toList()
@@ -144,7 +195,8 @@ Respond in Russian.''';
             '${r.startedAt.day.toString().padLeft(2, '0')}.${r.startedAt.month.toString().padLeft(2, '0')}';
         final time =
             '${r.startedAt.hour.toString().padLeft(2, '0')}:${r.startedAt.minute.toString().padLeft(2, '0')}';
-        buf.writeln('• $robotName — $date started $time, ${r.plannedMinutes}m');
+        final step = r.stepSummary ?? 'manual run';
+        buf.writeln('• $robotName — $date at $time — $step (${r.plannedMinutes} min)');
       }
     }
     buf.writeln();
