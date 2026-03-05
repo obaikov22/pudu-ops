@@ -343,7 +343,7 @@ class _RootScaffoldState extends ConsumerState<RootScaffold> {
                               ),
                             ),
                             child: Text(
-                              'v2.4.2',
+                              'v2.4.3',
                               style: theme.textTheme.labelSmall?.copyWith(
                                 color: _primary,
                                 fontWeight: FontWeight.w600,
@@ -409,7 +409,7 @@ class _RootScaffoldState extends ConsumerState<RootScaffold> {
                       crossAxisAlignment: CrossAxisAlignment.start,
                       children: [
                         Text(
-                          'PUDU-OPS 2.4.2',
+                          'PUDU-OPS 2.4.3',
                           style: theme.textTheme.titleLarge?.copyWith(
                             fontWeight: FontWeight.w800,
                             letterSpacing: 0.6,
@@ -503,7 +503,6 @@ class _RootScaffoldState extends ConsumerState<RootScaffold> {
   }
 
   Future<void> _checkAppStatus() async {
-    if (AppStatusOverride.unlocked) return;
     final status = await UpdateService.checkAppStatus();
     if (!mounted) return;
     if (!status.isActive) {
@@ -512,7 +511,6 @@ class _RootScaffoldState extends ConsumerState<RootScaffold> {
   }
 
   Future<void> _checkLicense() async {
-    if (AppStatusOverride.unlocked) return;
     final license = await LicenseService.checkAndRegister();
     if (!mounted) return;
     if (license.isBlocked) {
@@ -525,15 +523,7 @@ class _RootScaffoldState extends ConsumerState<RootScaffold> {
   void _showDisabledScreen(String message) {
     Navigator.of(context).pushAndRemoveUntil(
       MaterialPageRoute(
-        builder: (_) => DisabledScreen(
-          message: message,
-          onUnlock: (ctx) => Navigator.of(ctx).pushAndRemoveUntil(
-            MaterialPageRoute(
-              builder: (_) => const WithForegroundTask(child: RootScaffold()),
-            ),
-            (route) => false,
-          ),
-        ),
+        builder: (_) => DisabledScreen(message: message),
       ),
       (route) => false,
     );

@@ -1,30 +1,12 @@
 import 'package:flutter/material.dart';
-import '../../services/update_service.dart';
 
-class DisabledScreen extends StatefulWidget {
+class DisabledScreen extends StatelessWidget {
   final String message;
-  final void Function(BuildContext context) onUnlock;
 
   const DisabledScreen({
     super.key,
     required this.message,
-    required this.onUnlock,
   });
-
-  @override
-  State<DisabledScreen> createState() => _DisabledScreenState();
-}
-
-class _DisabledScreenState extends State<DisabledScreen> {
-  int _tapCount = 0;
-
-  void _handleTap() {
-    _tapCount++;
-    if (_tapCount >= 7) {
-      AppStatusOverride.unlocked = true;
-      widget.onUnlock(context);
-    }
-  }
 
   @override
   Widget build(BuildContext context) {
@@ -37,23 +19,20 @@ class _DisabledScreenState extends State<DisabledScreen> {
             child: Column(
               mainAxisSize: MainAxisSize.min,
               children: [
-                GestureDetector(
-                  onTap: _handleTap,
-                  child: Container(
-                    padding: const EdgeInsets.all(20),
-                    decoration: BoxDecoration(
-                      shape: BoxShape.circle,
-                      color: const Color(0xFFF0A04B).withValues(alpha: 0.15),
-                      border: Border.all(
-                        color: const Color(0xFFF0A04B).withValues(alpha: 0.4),
-                        width: 2,
-                      ),
+                Container(
+                  padding: const EdgeInsets.all(20),
+                  decoration: BoxDecoration(
+                    shape: BoxShape.circle,
+                    color: const Color(0xFFF0A04B).withValues(alpha: 0.15),
+                    border: Border.all(
+                      color: const Color(0xFFF0A04B).withValues(alpha: 0.4),
+                      width: 2,
                     ),
-                    child: const Icon(
-                      Icons.lock_outline,
-                      color: Color(0xFFF0A04B),
-                      size: 48,
-                    ),
+                  ),
+                  child: const Icon(
+                    Icons.lock_outline,
+                    color: Color(0xFFF0A04B),
+                    size: 48,
                   ),
                 ),
                 const SizedBox(height: 32),
@@ -86,7 +65,7 @@ class _DisabledScreenState extends State<DisabledScreen> {
                     ),
                   ),
                   child: Text(
-                    widget.message,
+                    message,
                     style: const TextStyle(
                       color: Color(0xFF8B92A5),
                       fontSize: 14,

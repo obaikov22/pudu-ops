@@ -130,10 +130,6 @@ class UpdateService {
   }
 }
 
-class AppStatusOverride {
-  static bool unlocked = false;
-}
-
 class AppStatus {
   final bool isActive;
   final String? disabledMessage;
