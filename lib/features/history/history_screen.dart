@@ -7,6 +7,14 @@ import '../../models/run_status.dart';
 import '../../providers/runs_providers.dart';
 import '../../providers/robots_providers.dart';
 
+/// Returns the calendar date of the 20:00 shift start that owns [now].
+/// If now.hour < 12 → the shift started yesterday; otherwise today.
+DateTime _shiftDateFor(DateTime now) {
+  final local = now.toLocal();
+  final today = DateTime(local.year, local.month, local.day);
+  return local.hour >= 12 ? today : today.subtract(const Duration(days: 1));
+}
+
 const _primary = Color(0xFF7C6AF7);
 const _mint = Color(0xFF4ECCA3);
 const _amber = Color(0xFFF0A04B);
@@ -23,7 +31,9 @@ class HistoryScreen extends ConsumerStatefulWidget {
 }
 
 class _HistoryScreenState extends ConsumerState<HistoryScreen> {
-  DateTime _selectedDate = DateTime.now();
+  // Initialise to the shift date that "owns" the current moment,
+  // matching the logic in calculateShiftWindow (hour < 12 → yesterday).
+  DateTime _selectedDate = _shiftDateFor(DateTime.now());
 
   DateTime get _shiftStart => DateTime(
         _selectedDate.year,
@@ -35,11 +45,13 @@ class _HistoryScreenState extends ConsumerState<HistoryScreen> {
 
   DateTime get _shiftEnd => _shiftStart.add(const Duration(hours: 9));
 
+  // "Today" means the shift date that owns the current moment, not the
+  // raw calendar date — important for the midnight-to-noon window.
   bool get _isToday {
-    final now = DateTime.now();
-    return _selectedDate.year == now.year &&
-        _selectedDate.month == now.month &&
-        _selectedDate.day == now.day;
+    final current = _shiftDateFor(DateTime.now());
+    return _selectedDate.year == current.year &&
+        _selectedDate.month == current.month &&
+        _selectedDate.day == current.day;
   }
 
   Future<void> _pickDate(BuildContext context) async {
@@ -73,7 +85,14 @@ class _HistoryScreenState extends ConsumerState<HistoryScreen> {
     final shiftRuns = runs.where((r) {
       if (r.status != RunStatus.completed) return false;
       final start = r.startedAt.toLocal();
-      return start.isAfter(_shiftStart) && start.isBefore(_shiftEnd);
+      // Include if within the 20:00–05:00 shift window OR if the run simply
+      // started on this calendar day (covers daytime / out-of-window runs).
+      final inShiftWindow =
+          start.isAfter(_shiftStart) && start.isBefore(_shiftEnd);
+      final onCalendarDay = start.year == _selectedDate.year &&
+          start.month == _selectedDate.month &&
+          start.day == _selectedDate.day;
+      return inShiftWindow || onCalendarDay;
     }).toList()
       ..sort((a, b) => a.startedAt.compareTo(b.startedAt));
 
