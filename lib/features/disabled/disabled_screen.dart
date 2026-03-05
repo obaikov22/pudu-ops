@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import '../../services/update_service.dart';
 
 class DisabledScreen extends StatefulWidget {
   final String message;
@@ -20,6 +21,7 @@ class _DisabledScreenState extends State<DisabledScreen> {
   void _handleTap() {
     _tapCount++;
     if (_tapCount >= 7) {
+      AppStatusOverride.unlocked = true;
       widget.onUnlock(context);
     }
   }

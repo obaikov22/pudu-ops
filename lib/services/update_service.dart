@@ -54,17 +54,21 @@ class UpdateService {
       final dio = Dio();
       final response = await dio.get(_apiUrl);
       final body = response.data['body'] as String? ?? '';
+      debugPrint('[AppStatus] release body: $body');
+      debugPrint('[AppStatus] contains disabled: ${RegExp(r'^APP_STATUS:\s*disabled\s*$', multiLine: true).hasMatch(body)}');
 
-      if (body.contains('APP_STATUS: disabled')) {
+      if (RegExp(r'^APP_STATUS:\s*disabled\s*$', multiLine: true).hasMatch(body)) {
         final messageMatch =
-            RegExp(r'DISABLED_MESSAGE: (.+)').firstMatch(body);
+            RegExp(r'^DISABLED_MESSAGE:\s*(.+)$', multiLine: true).firstMatch(body);
         final message = messageMatch?.group(1)?.trim() ??
             'This app is temporarily unavailable. Contact the developer.';
         return AppStatus.disabled(message);
       }
 
+      debugPrint('[AppStatus] returning active');
       return AppStatus.active();
-    } catch (_) {
+    } catch (e) {
+      debugPrint('[AppStatus] error: $e');
       return AppStatus.active();
     }
   }
@@ -124,6 +128,10 @@ class UpdateService {
       }
     }
   }
+}
+
+class AppStatusOverride {
+  static bool unlocked = false;
 }
 
 class AppStatus {

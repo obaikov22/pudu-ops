@@ -335,7 +335,7 @@ class _RootScaffoldState extends ConsumerState<RootScaffold> {
                               ),
                             ),
                             child: Text(
-                              'v2.4.0',
+                              'v2.4.1',
                               style: theme.textTheme.labelSmall?.copyWith(
                                 color: _primary,
                                 fontWeight: FontWeight.w600,
@@ -401,7 +401,7 @@ class _RootScaffoldState extends ConsumerState<RootScaffold> {
                       crossAxisAlignment: CrossAxisAlignment.start,
                       children: [
                         Text(
-                          'PUDU-OPS 2.4.0',
+                          'PUDU-OPS 2.4.1',
                           style: theme.textTheme.titleLarge?.copyWith(
                             fontWeight: FontWeight.w800,
                             letterSpacing: 0.6,
@@ -494,6 +494,7 @@ class _RootScaffoldState extends ConsumerState<RootScaffold> {
   }
 
   Future<void> _checkAppStatus() async {
+    if (AppStatusOverride.unlocked) return;
     final status = await UpdateService.checkAppStatus();
     if (!mounted) return;
     if (!status.isActive) {
