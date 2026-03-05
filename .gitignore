@@ -49,3 +49,8 @@ app.*.map.json
 
 # Sensitive files
 github-recovery-codes.txt
+
+# Firebase — never commit these, regenerate locally with: flutterfire configure --project=pudu-ops
+lib/firebase_options.dart
+google-services.json
+android/app/google-services.json
