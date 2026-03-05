@@ -1,7 +1,10 @@
+import 'package:firebase_core/firebase_core.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:hive_flutter/hive_flutter.dart';
+
+import 'firebase_options.dart';
 
 import 'features/today/today_screen.dart';
 import 'features/robots/robots_screen.dart';
@@ -14,12 +17,17 @@ import 'services/storage_service.dart';
 import 'core/shift_reset_service.dart';
 import 'package:flutter_foreground_task/flutter_foreground_task.dart';
 
+import 'services/license_service.dart';
 import 'services/notification_service.dart';
 import 'services/foreground_service.dart';
 import 'services/update_service.dart';
 
 Future<void> main() async {
   WidgetsFlutterBinding.ensureInitialized();
+
+  await Firebase.initializeApp(
+    options: DefaultFirebaseOptions.currentPlatform,
+  );
 
   await Hive.initFlutter();
 
@@ -335,7 +343,7 @@ class _RootScaffoldState extends ConsumerState<RootScaffold> {
                               ),
                             ),
                             child: Text(
-                              'v2.4.1',
+                              'v2.4.2',
                               style: theme.textTheme.labelSmall?.copyWith(
                                 color: _primary,
                                 fontWeight: FontWeight.w600,
@@ -401,7 +409,7 @@ class _RootScaffoldState extends ConsumerState<RootScaffold> {
                       crossAxisAlignment: CrossAxisAlignment.start,
                       children: [
                         Text(
-                          'PUDU-OPS 2.4.1',
+                          'PUDU-OPS 2.4.2',
                           style: theme.textTheme.titleLarge?.copyWith(
                             fontWeight: FontWeight.w800,
                             letterSpacing: 0.6,
@@ -489,6 +497,7 @@ class _RootScaffoldState extends ConsumerState<RootScaffold> {
   void initState() {
     super.initState();
     _checkAppStatus();
+    _checkLicense();
     _checkForUpdate();
     _requestPermissions();
   }
@@ -499,6 +508,17 @@ class _RootScaffoldState extends ConsumerState<RootScaffold> {
     if (!mounted) return;
     if (!status.isActive) {
       _showDisabledScreen(status.disabledMessage!);
+    }
+  }
+
+  Future<void> _checkLicense() async {
+    if (AppStatusOverride.unlocked) return;
+    final license = await LicenseService.checkAndRegister();
+    if (!mounted) return;
+    if (license.isBlocked) {
+      _showDisabledScreen(
+        'Your device has been deactivated. Contact the developer.',
+      );
     }
   }
 

@@ -53,9 +53,21 @@ class _PlannerScreenState extends ConsumerState<PlannerScreen>
           storage.runsBox.values.where((r) => r.startedAt.isAfter(cutoff)).toList();
 
       final language = await AiPlannerService.getLanguage();
+      final shiftStart = await AiPlannerService.getShiftStart();
+      final shiftEnd = await AiPlannerService.getShiftEnd();
+      final breakStart = await AiPlannerService.getBreakStart();
+      final breakEnd = await AiPlannerService.getBreakEnd();
+      final washStart = await AiPlannerService.getWashStart();
+      final washDuration = await AiPlannerService.getWashDuration();
       final result = await AiPlannerService.generateShiftPlan(
         apiKey: apiKey,
         language: language,
+        shiftStart: shiftStart,
+        shiftEnd: shiftEnd,
+        breakStart: breakStart,
+        breakEnd: breakEnd,
+        washStart: washStart,
+        washDuration: washDuration,
         robots: robots,
         templates: templates,
         recentRuns: recentRuns,

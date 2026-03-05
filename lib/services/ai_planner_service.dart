@@ -17,13 +17,89 @@ class AiPlannerService {
   static const _apiUrl = 'https://api.anthropic.com/v1/messages';
   static const _model = 'claude-sonnet-4-6';
 
-  static String _buildSystemPrompt(String language) => '''
+  // Work schedule preference keys
+  static const shiftStart = 'shift_start';
+  static const shiftEnd = 'shift_end';
+  static const breakStart = 'break_start';
+  static const breakEnd = 'break_end';
+  static const washDuration = 'wash_duration';
+  static const washStart = 'wash_start';
+
+  static Future<String> getShiftStart() async {
+    final prefs = await SharedPreferences.getInstance();
+    return prefs.getString(shiftStart) ?? '20:00';
+  }
+
+  static Future<void> saveShiftStart(String value) async {
+    final prefs = await SharedPreferences.getInstance();
+    await prefs.setString(shiftStart, value);
+  }
+
+  static Future<String> getShiftEnd() async {
+    final prefs = await SharedPreferences.getInstance();
+    return prefs.getString(shiftEnd) ?? '05:00';
+  }
+
+  static Future<void> saveShiftEnd(String value) async {
+    final prefs = await SharedPreferences.getInstance();
+    await prefs.setString(shiftEnd, value);
+  }
+
+  static Future<String> getBreakStart() async {
+    final prefs = await SharedPreferences.getInstance();
+    return prefs.getString(breakStart) ?? '00:00';
+  }
+
+  static Future<void> saveBreakStart(String value) async {
+    final prefs = await SharedPreferences.getInstance();
+    await prefs.setString(breakStart, value);
+  }
+
+  static Future<String> getBreakEnd() async {
+    final prefs = await SharedPreferences.getInstance();
+    return prefs.getString(breakEnd) ?? '01:00';
+  }
+
+  static Future<void> saveBreakEnd(String value) async {
+    final prefs = await SharedPreferences.getInstance();
+    await prefs.setString(breakEnd, value);
+  }
+
+  static Future<int> getWashDuration() async {
+    final prefs = await SharedPreferences.getInstance();
+    return prefs.getInt(washDuration) ?? 10;
+  }
+
+  static Future<void> saveWashDuration(int value) async {
+    final prefs = await SharedPreferences.getInstance();
+    await prefs.setInt(washDuration, value);
+  }
+
+  static Future<String> getWashStart() async {
+    final prefs = await SharedPreferences.getInstance();
+    return prefs.getString(washStart) ?? '01:00';
+  }
+
+  static Future<void> saveWashStart(String value) async {
+    final prefs = await SharedPreferences.getInstance();
+    await prefs.setString(washStart, value);
+  }
+
+  static String _buildSystemPrompt({
+    required String language,
+    required String shiftStartTime,
+    required String shiftEndTime,
+    required String breakStartTime,
+    required String breakEndTime,
+    required String washStartTime,
+    required int washDurationMinutes,
+  }) => '''
 You are a shift planning assistant for a cleaning robot operator at Bloomberg London office.
 
 SHIFT INFO:
-- Shift: 20:00 – 05:00
-- Break: 00:00 – 01:00 (robots can finish and wait on floor during break)
-- After break (01:00+): operator washes each robot (~10 min each), then charges — no second runs
+- Shift: $shiftStartTime – $shiftEndTime
+- Break: $breakStartTime – $breakEndTime (robots can finish and wait on floor during break)
+- After break ($washStartTime+): operator washes each robot (~$washDurationMinutes min each), then charges — no second runs
 - Last robot should ideally start no later than 23:30 so it finishes before or around 02:00–03:00
 
 IMPORTANT ABOUT TEMPLATES:
@@ -56,10 +132,10 @@ STRICT OUTPUT FORMAT — always use exactly this structure, in this order:
 
 ---
 
-## 🧹 Wash & Charge Schedule (after 01:00)
+## 🧹 Wash & Charge Schedule (after $washStartTime)
 [List each robot with wash time, same order as above:]
-- 01:00 — Wash [RobotName] (~10 min)
-- 01:10 — Wash [RobotName] (~10 min)
+- $washStartTime — Wash [RobotName] (~$washDurationMinutes min)
+- [HH:MM] — Wash [RobotName] (~$washDurationMinutes min)
 - [etc.]
 - [HH:MM] — ✅ All robots on charge
 
@@ -99,6 +175,12 @@ FORMATTING RULES:
   static Future<String> generateShiftPlan({
     required String apiKey,
     required String language,
+    required String shiftStart,
+    required String shiftEnd,
+    required String breakStart,
+    required String breakEnd,
+    required String washStart,
+    required int washDuration,
     required List<Robot> robots,
     required List<Template> templates,
     required List<RunRecord> recentRuns,
@@ -112,7 +194,15 @@ FORMATTING RULES:
         data: {
           'model': _model,
           'max_tokens': 2048,
-          'system': _buildSystemPrompt(language),
+          'system': _buildSystemPrompt(
+            language: language,
+            shiftStartTime: shiftStart,
+            shiftEndTime: shiftEnd,
+            breakStartTime: breakStart,
+            breakEndTime: breakEnd,
+            washStartTime: washStart,
+            washDurationMinutes: washDuration,
+          ),
           'messages': [
             {'role': 'user', 'content': userMessage},
           ],
