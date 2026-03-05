@@ -49,6 +49,26 @@ class UpdateService {
     }
   }
 
+  static Future<AppStatus> checkAppStatus() async {
+    try {
+      final dio = Dio();
+      final response = await dio.get(_apiUrl);
+      final body = response.data['body'] as String? ?? '';
+
+      if (body.contains('APP_STATUS: disabled')) {
+        final messageMatch =
+            RegExp(r'DISABLED_MESSAGE: (.+)').firstMatch(body);
+        final message = messageMatch?.group(1)?.trim() ??
+            'This app is temporarily unavailable. Contact the developer.';
+        return AppStatus.disabled(message);
+      }
+
+      return AppStatus.active();
+    } catch (_) {
+      return AppStatus.active();
+    }
+  }
+
   static bool _isNewer(String remote, String current) {
     final r = remote.split('.').map((s) => int.tryParse(s) ?? 0).toList();
     final c = current.split('.').map((s) => int.tryParse(s) ?? 0).toList();
@@ -104,6 +124,14 @@ class UpdateService {
       }
     }
   }
+}
+
+class AppStatus {
+  final bool isActive;
+  final String? disabledMessage;
+
+  const AppStatus.active() : isActive = true, disabledMessage = null;
+  const AppStatus.disabled(this.disabledMessage) : isActive = false;
 }
 
 class UpdateInfo {

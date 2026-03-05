@@ -15,7 +15,7 @@ class AiPlannerService {
   static const _languagePref = 'ai_language';
   static const _defaultLanguage = 'Russian';
   static const _apiUrl = 'https://api.anthropic.com/v1/messages';
-  static const _model = 'claude-opus-4-6';
+  static const _model = 'claude-sonnet-4-6';
 
   static String _buildSystemPrompt(String language) => '''
 You are a shift planning assistant for a cleaning robot operator at Bloomberg London office.

@@ -9,6 +9,7 @@ import 'features/templates/templates_screen.dart';
 import 'features/history/history_screen.dart';
 import 'features/planner/planner_screen.dart';
 import 'features/settings/settings_screen.dart';
+import 'features/disabled/disabled_screen.dart';
 import 'services/storage_service.dart';
 import 'core/shift_reset_service.dart';
 import 'package:flutter_foreground_task/flutter_foreground_task.dart';
@@ -334,7 +335,7 @@ class _RootScaffoldState extends ConsumerState<RootScaffold> {
                               ),
                             ),
                             child: Text(
-                              'v2.3.5 Beta',
+                              'v2.4.0',
                               style: theme.textTheme.labelSmall?.copyWith(
                                 color: _primary,
                                 fontWeight: FontWeight.w600,
@@ -400,7 +401,7 @@ class _RootScaffoldState extends ConsumerState<RootScaffold> {
                       crossAxisAlignment: CrossAxisAlignment.start,
                       children: [
                         Text(
-                          'PUDU-OPS 2.3.5',
+                          'PUDU-OPS 2.4.0',
                           style: theme.textTheme.titleLarge?.copyWith(
                             fontWeight: FontWeight.w800,
                             letterSpacing: 0.6,
@@ -487,8 +488,34 @@ class _RootScaffoldState extends ConsumerState<RootScaffold> {
   @override
   void initState() {
     super.initState();
+    _checkAppStatus();
     _checkForUpdate();
     _requestPermissions();
+  }
+
+  Future<void> _checkAppStatus() async {
+    final status = await UpdateService.checkAppStatus();
+    if (!mounted) return;
+    if (!status.isActive) {
+      _showDisabledScreen(status.disabledMessage!);
+    }
+  }
+
+  void _showDisabledScreen(String message) {
+    Navigator.of(context).pushAndRemoveUntil(
+      MaterialPageRoute(
+        builder: (_) => DisabledScreen(
+          message: message,
+          onUnlock: (ctx) => Navigator.of(ctx).pushAndRemoveUntil(
+            MaterialPageRoute(
+              builder: (_) => const WithForegroundTask(child: RootScaffold()),
+            ),
+            (route) => false,
+          ),
+        ),
+      ),
+      (route) => false,
+    );
   }
 
   Future<void> _requestPermissions() async {

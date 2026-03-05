@@ -2,7 +2,7 @@ name: pudu_ops
 description: "Internal operational tool for managing Pudu CC1 cleaning robots."
 publish_to: 'none'
 
-version: 2.3.5+14
+version: 2.4.0+15
 
 environment:
   sdk: ^3.11.0
