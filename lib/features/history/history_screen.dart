@@ -85,14 +85,7 @@ class _HistoryScreenState extends ConsumerState<HistoryScreen> {
     final shiftRuns = runs.where((r) {
       if (r.status != RunStatus.completed) return false;
       final start = r.startedAt.toLocal();
-      // Include if within the 20:00–05:00 shift window OR if the run simply
-      // started on this calendar day (covers daytime / out-of-window runs).
-      final inShiftWindow =
-          start.isAfter(_shiftStart) && start.isBefore(_shiftEnd);
-      final onCalendarDay = start.year == _selectedDate.year &&
-          start.month == _selectedDate.month &&
-          start.day == _selectedDate.day;
-      return inShiftWindow || onCalendarDay;
+      return start.isAfter(_shiftStart) && start.isBefore(_shiftEnd);
     }).toList()
       ..sort((a, b) => a.startedAt.compareTo(b.startedAt));
 
