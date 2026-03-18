@@ -8,11 +8,13 @@ import '../../providers/runs_providers.dart';
 import '../../providers/robots_providers.dart';
 
 /// Returns the calendar date of the 20:00 shift start that owns [now].
-/// If now.hour < 12 → the shift started yesterday; otherwise today.
+/// - hour >= 20 → tonight's shift has started → use today
+/// - hour < 20  → the last completed shift started yesterday
+///   (covers 00:00–05:00 ongoing, 05:00–19:59 between shifts)
 DateTime _shiftDateFor(DateTime now) {
   final local = now.toLocal();
   final today = DateTime(local.year, local.month, local.day);
-  return local.hour >= 12 ? today : today.subtract(const Duration(days: 1));
+  return local.hour >= 20 ? today : today.subtract(const Duration(days: 1));
 }
 
 const _primary = Color(0xFF7C6AF7);
