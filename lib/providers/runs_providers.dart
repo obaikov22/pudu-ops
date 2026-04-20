@@ -50,16 +50,22 @@ class RunsController extends Notifier<List<RunRecord>> {
       try {
         final now = DateTime.now();
         final storage = ref.read(storageServiceProvider);
-        final activeRuns = state.where((r) => r.status == RunStatus.active);
 
-        for (final run in activeRuns) {
-          if (run.remainingAt(now) <= Duration.zero) {
-            final robot = storage.robotsBox.get(run.robotId);
-            final robotName = robot?.name ?? 'Robot';
+        // Collect expired runs into a snapshot list BEFORE mutating state,
+        // so finish() → refresh() → state reassignment doesn't invalidate
+        // the iterator mid-loop.
+        final expiredRuns = state
+            .where((r) =>
+                r.status == RunStatus.active &&
+                r.remainingAt(now) <= Duration.zero)
+            .toList();
 
-            await finish(run.id);
-            await NotificationService.showAwaitingPickup(robotName, run.robotId);
-          }
+        for (final run in expiredRuns) {
+          final robot = storage.robotsBox.get(run.robotId);
+          final robotName = robot?.name ?? 'Robot';
+
+          await finish(run.id);
+          await NotificationService.showAwaitingPickup(robotName, run.robotId);
         }
       } catch (_) {
         // Swallow exceptions so the timer keeps ticking on next interval

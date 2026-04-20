@@ -46,8 +46,9 @@ ShiftInfo calculateShiftWindow(
   // длительность смены 9 часов: 20:00 → 05:00
   final DateTime shiftEnd = shiftStart.add(const Duration(hours: 9));
 
+  // Use !isBefore (>=) so exactly 20:00:00.000 is included in the shift.
   final bool insideShift =
-      localNow.isAfter(shiftStart) && localNow.isBefore(shiftEnd);
+      !localNow.isBefore(shiftStart) && localNow.isBefore(shiftEnd);
 
   return ShiftInfo(
     now: localNow,

@@ -2,6 +2,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 import '../models/robot.dart';
 import '../services/robots_repository.dart';
+import 'runs_providers.dart';
 import 'storage_providers.dart';
 import 'templates_providers.dart';
 
@@ -83,6 +84,10 @@ class RobotsController extends Notifier<List<Robot>> {
   Future<void> deleteRobot(String id) async {
     await _repo.delete(id);
     state = _load();
+    // Cascade: repo already deleted linked templates and runs from Hive,
+    // so refresh their providers to keep UI in sync.
+    ref.read(templatesControllerProvider.notifier).refresh();
+    ref.read(runsControllerProvider.notifier).refresh();
   }
 }
 

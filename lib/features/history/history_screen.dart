@@ -87,7 +87,7 @@ class _HistoryScreenState extends ConsumerState<HistoryScreen> {
     final shiftRuns = runs.where((r) {
       if (r.status != RunStatus.completed) return false;
       final start = r.startedAt.toLocal();
-      return start.isAfter(_shiftStart) && start.isBefore(_shiftEnd);
+      return !start.isBefore(_shiftStart) && start.isBefore(_shiftEnd);
     }).toList()
       ..sort((a, b) => a.startedAt.compareTo(b.startedAt));
 

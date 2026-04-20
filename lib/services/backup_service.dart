@@ -79,6 +79,31 @@ class BackupService {
       throw Exception('Invalid backup file: $e');
     }
 
+    // Validate imported data before writing to Hive
+    for (final robot in robotsList) {
+      if (robot.id.trim().isEmpty) {
+        throw Exception('Invalid backup file: robot with empty id');
+      }
+      if (robot.name.trim().isEmpty) {
+        throw Exception('Invalid backup file: robot with empty name');
+      }
+    }
+    for (final template in templatesList) {
+      if (template.id.trim().isEmpty) {
+        throw Exception('Invalid backup file: template with empty id');
+      }
+      if (template.tasks.isEmpty) {
+        throw Exception(
+            'Invalid backup file: template "${template.name}" has no tasks');
+      }
+      for (final task in template.tasks) {
+        if (task.durationMinutes <= 0) {
+          throw Exception(
+              'Invalid backup file: task "${task.label}" has invalid duration');
+        }
+      }
+    }
+
     for (final robot in robotsList) {
       await _storage.robotsBox.put(robot.id, robot);
     }

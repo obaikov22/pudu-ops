@@ -79,21 +79,36 @@ class RunTimerTaskHandler extends TaskHandler {
   Future<void> _setup() async {
     if (_ready) return;
 
-    // Small delay to avoid concurrent Hive access with main isolate on startup
-    await Future.delayed(const Duration(seconds: 2));
+    // Delay + retry to avoid concurrent Hive access with main isolate.
+    // Hive does not support multi-isolate access; this is a best-effort guard.
+    for (var attempt = 0; attempt < 3; attempt++) {
+      try {
+        await Future.delayed(Duration(seconds: 2 + attempt));
 
-    await Hive.initFlutter();
+        await Hive.initFlutter();
 
-    // Register only the adapters we actually need in this isolate
-    if (!Hive.isAdapterRegistered(0)) Hive.registerAdapter(RobotAdapter());
-    if (!Hive.isAdapterRegistered(2)) Hive.registerAdapter(RunStatusAdapter());
-    if (!Hive.isAdapterRegistered(1)) Hive.registerAdapter(RunRecordAdapter());
+        // Register only the adapters we actually need in this isolate
+        if (!Hive.isAdapterRegistered(0)) {
+          Hive.registerAdapter(RobotAdapter());
+        }
+        if (!Hive.isAdapterRegistered(2)) {
+          Hive.registerAdapter(RunStatusAdapter());
+        }
+        if (!Hive.isAdapterRegistered(1)) {
+          Hive.registerAdapter(RunRecordAdapter());
+        }
 
-    if (!Hive.isBoxOpen(StorageService.robotsBoxName)) {
-      await Hive.openBox<Robot>(StorageService.robotsBoxName);
-    }
-    if (!Hive.isBoxOpen(StorageService.runsBoxName)) {
-      await Hive.openBox<RunRecord>(StorageService.runsBoxName);
+        if (!Hive.isBoxOpen(StorageService.robotsBoxName)) {
+          await Hive.openBox<Robot>(StorageService.robotsBoxName);
+        }
+        if (!Hive.isBoxOpen(StorageService.runsBoxName)) {
+          await Hive.openBox<RunRecord>(StorageService.runsBoxName);
+        }
+
+        break; // Success — exit retry loop
+      } catch (e) {
+        if (attempt == 2) return; // Give up after 3 attempts
+      }
     }
 
     await _plugin.initialize(

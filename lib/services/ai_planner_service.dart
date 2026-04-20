@@ -1,4 +1,5 @@
 import 'package:dio/dio.dart';
+import 'package:flutter_secure_storage/flutter_secure_storage.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 
 import '../models/robot.dart';
@@ -152,14 +153,29 @@ FORMATTING RULES:
 - Always include all 4 sections even if some have minimal content
 - Always respond in $language, regardless of the language of the input data''';
 
+  static const _secureStorage = FlutterSecureStorage();
+  static const _secureApiKeyKey = 'anthropic_api_key';
+
   static Future<String?> getApiKey() async {
+    // Try secure storage first
+    var key = await _secureStorage.read(key: _secureApiKeyKey);
+    if (key != null) return key;
+
+    // Migrate from SharedPreferences if present
     final prefs = await SharedPreferences.getInstance();
-    return prefs.getString(_apiKeyPref);
+    key = prefs.getString(_apiKeyPref);
+    if (key != null) {
+      await _secureStorage.write(key: _secureApiKeyKey, value: key);
+      await prefs.remove(_apiKeyPref);
+    }
+    return key;
   }
 
   static Future<void> saveApiKey(String key) async {
+    await _secureStorage.write(key: _secureApiKeyKey, value: key);
+    // Clean up legacy plaintext entry if it exists
     final prefs = await SharedPreferences.getInstance();
-    await prefs.setString(_apiKeyPref, key);
+    await prefs.remove(_apiKeyPref);
   }
 
   static Future<String> getLanguage() async {

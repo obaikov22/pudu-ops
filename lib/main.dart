@@ -17,6 +17,7 @@ import 'services/storage_service.dart';
 import 'core/shift_reset_service.dart';
 import 'package:flutter_foreground_task/flutter_foreground_task.dart';
 
+import 'providers/storage_providers.dart';
 import 'services/license_service.dart';
 import 'services/notification_service.dart';
 import 'services/foreground_service.dart';
@@ -33,6 +34,7 @@ Future<void> main() async {
 
   final storage = StorageService();
   await storage.init();
+  initStorageServiceProvider(storage);
 
   final shiftResetService = ShiftResetService(storage);
   await shiftResetService.resetIfNewShift();
@@ -343,7 +345,7 @@ class _RootScaffoldState extends ConsumerState<RootScaffold> {
                               ),
                             ),
                             child: Text(
-                              'v2.4.6',
+                              'v2.4.7',
                               style: theme.textTheme.labelSmall?.copyWith(
                                 color: _primary,
                                 fontWeight: FontWeight.w600,
@@ -409,7 +411,7 @@ class _RootScaffoldState extends ConsumerState<RootScaffold> {
                       crossAxisAlignment: CrossAxisAlignment.start,
                       children: [
                         Text(
-                          'PUDU-OPS 2.4.6',
+                          'PUDU-OPS 2.4.7',
                           style: theme.textTheme.titleLarge?.copyWith(
                             fontWeight: FontWeight.w800,
                             letterSpacing: 0.6,
@@ -496,28 +498,31 @@ class _RootScaffoldState extends ConsumerState<RootScaffold> {
   @override
   void initState() {
     super.initState();
-    _checkAppStatus();
-    _checkLicense();
-    _checkForUpdate();
+    _runStartupChecks();
     _requestPermissions();
   }
 
-  Future<void> _checkAppStatus() async {
+  /// Runs disable/license checks sequentially so only one DisabledScreen
+  /// can be pushed (avoids racing pushAndRemoveUntil calls).
+  Future<void> _runStartupChecks() async {
     final status = await UpdateService.checkAppStatus();
     if (!mounted) return;
     if (!status.isActive) {
       _showDisabledScreen(status.disabledMessage!);
+      return; // Already disabled — skip remaining checks
     }
-  }
 
-  Future<void> _checkLicense() async {
     final license = await LicenseService.checkAndRegister();
     if (!mounted) return;
     if (license.isBlocked) {
       _showDisabledScreen(
         'Your device has been deactivated. Contact the developer.',
       );
+      return;
     }
+
+    // Only check for updates if the app is not disabled
+    _checkForUpdate();
   }
 
   void _showDisabledScreen(String message) {
