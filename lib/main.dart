@@ -18,6 +18,9 @@ import 'core/shift_reset_service.dart';
 import 'package:flutter_foreground_task/flutter_foreground_task.dart';
 
 import 'providers/storage_providers.dart';
+import 'providers/runs_providers.dart';
+import 'providers/robots_providers.dart';
+import 'providers/templates_providers.dart';
 import 'services/license_service.dart';
 import 'services/notification_service.dart';
 import 'services/foreground_service.dart';
@@ -176,7 +179,8 @@ class RootScaffold extends ConsumerStatefulWidget {
   ConsumerState<RootScaffold> createState() => _RootScaffoldState();
 }
 
-class _RootScaffoldState extends ConsumerState<RootScaffold> {
+class _RootScaffoldState extends ConsumerState<RootScaffold>
+    with WidgetsBindingObserver {
   int _currentIndex = 0;
 
   static const _primary = Color(0xFF7C6AF7);
@@ -345,7 +349,7 @@ class _RootScaffoldState extends ConsumerState<RootScaffold> {
                               ),
                             ),
                             child: Text(
-                              'v2.4.7',
+                              'v2.4.8',
                               style: theme.textTheme.labelSmall?.copyWith(
                                 color: _primary,
                                 fontWeight: FontWeight.w600,
@@ -411,7 +415,7 @@ class _RootScaffoldState extends ConsumerState<RootScaffold> {
                       crossAxisAlignment: CrossAxisAlignment.start,
                       children: [
                         Text(
-                          'PUDU-OPS 2.4.7',
+                          'PUDU-OPS 2.4.8',
                           style: theme.textTheme.titleLarge?.copyWith(
                             fontWeight: FontWeight.w800,
                             letterSpacing: 0.6,
@@ -498,8 +502,28 @@ class _RootScaffoldState extends ConsumerState<RootScaffold> {
   @override
   void initState() {
     super.initState();
+    WidgetsBinding.instance.addObserver(this);
     _runStartupChecks();
     _requestPermissions();
+  }
+
+  @override
+  void dispose() {
+    WidgetsBinding.instance.removeObserver(this);
+    super.dispose();
+  }
+
+  @override
+  void didChangeAppLifecycleState(AppLifecycleState state) {
+    if (state == AppLifecycleState.resumed) {
+      final storage = ref.read(storageServiceProvider);
+      ShiftResetService(storage).resetIfNewShift().then((_) {
+        // Refresh providers in case the reset changed the local database.
+        ref.read(runsControllerProvider.notifier).refresh();
+        ref.read(robotsControllerProvider.notifier).refresh();
+        ref.read(templatesControllerProvider.notifier).refresh();
+      });
+    }
   }
 
   /// Runs disable/license checks sequentially so only one DisabledScreen

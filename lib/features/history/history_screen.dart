@@ -87,7 +87,10 @@ class _HistoryScreenState extends ConsumerState<HistoryScreen> {
     final shiftRuns = runs.where((r) {
       if (r.status != RunStatus.completed) return false;
       final start = r.startedAt.toLocal();
-      return !start.isBefore(_shiftStart) && start.isBefore(_shiftEnd);
+      // Include all runs within the 12:00 PM to 12:00 PM window for the selected shift date.
+      final windowStart = DateTime(_selectedDate.year, _selectedDate.month, _selectedDate.day, 12, 0);
+      final windowEnd = windowStart.add(const Duration(hours: 24));
+      return !start.isBefore(windowStart) && start.isBefore(windowEnd);
     }).toList()
       ..sort((a, b) => a.startedAt.compareTo(b.startedAt));
 
